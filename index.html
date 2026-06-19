@@ -209,6 +209,10 @@
           </div>
         </div>
         <div style="display:flex; align-items:center; gap:8px;">
+          <div id="streak-badge" style="display:flex; align-items:center; gap:5px; font-size:11px; font-weight:500; letter-spacing:0.02em; color:var(--text-secondary); border:0.5px solid var(--border-secondary); border-radius:var(--radius-md); padding:4px 10px; flex-shrink:0;">
+            <i class="ti ti-flame" aria-hidden="true" style="font-size:13px;"></i>
+            <span id="streak-text">0 sessies deze week</span>
+          </div>
           <div style="font-size:11px; font-weight:500; letter-spacing:0.03em; color:var(--text-secondary); border:0.5px solid var(--border-secondary); border-radius:var(--radius-md); padding:4px 10px; flex-shrink:0;">
             NIVEAU A2–B1
           </div>
@@ -244,22 +248,50 @@
         </div>
       </div>
 
+      <div style="display:flex; align-items:center; gap:6px; margin-bottom:10px;">
+        <div id="depth-bar-track" style="flex:1; height:4px; background:var(--bg-secondary); border-radius:2px; overflow:hidden;">
+          <div id="depth-bar-fill" style="height:100%; width:0%; background:var(--info-text); transition:width 300ms ease;"></div>
+        </div>
+        <span id="depth-label" style="font-size:11px; color:var(--text-tertiary); flex-shrink:0;">0 beurten</span>
+      </div>
+
       <div id="chat-log" style="background:var(--bg-secondary); border-radius:var(--radius-lg); padding:1rem; max-height:380px; overflow-y:auto; display:flex; flex-direction:column; gap:14px; margin-bottom:1rem;"></div>
 
-      <p id="chat-error" style="font-size:13px; color:var(--danger-text); margin-bottom:8px; display:none;"></p>
+      <div id="session-summary" style="display:none; margin-bottom:1rem; padding:14px; background:var(--bg-secondary); border:0.5px solid var(--border-tertiary); border-radius:var(--radius-lg);">
+        <p style="font-size:12px; font-weight:500; margin:0 0 8px; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.04em;">
+          Korte samenvatting
+        </p>
+        <div id="session-summary-content" style="font-size:13px; line-height:1.6;"></div>
+      </div>
+
+      <div id="chat-error-row" style="display:none; align-items:center; gap:8px; margin-bottom:8px;">
+        <p id="chat-error" style="font-size:13px; color:var(--danger-text); margin:0; flex:1;"></p>
+        <button id="retry-btn" style="font-size:12.5px; padding:6px 12px; flex-shrink:0;">
+          <i class="ti ti-reload" aria-hidden="true" style="font-size:13px; vertical-align:-2px; margin-right:4px;"></i>
+          Opnieuw
+        </button>
+      </div>
       <p id="speech-unsupported" style="font-size:12px; color:var(--text-tertiary); margin-bottom:8px; display:none;">
         Voice input isn't available in this browser — type your reply instead.
       </p>
 
-      <button id="record-btn" style="width:100%; display:flex; align-items:center; justify-content:center; gap:8px; height:44px; margin-bottom:6px; font-size:14px; font-weight:500; background:var(--bg-secondary);">
-        <i class="ti ti-microphone" aria-hidden="true" style="font-size:17px;"></i>
-        <span id="record-btn-label">Spreek je antwoord in</span>
+      <button id="record-btn" style="width:100%; display:flex; align-items:center; justify-content:center; gap:8px; height:44px; margin-bottom:6px; font-size:14px; font-weight:500; background:var(--bg-secondary); position:relative; overflow:hidden;">
+        <div id="volume-meter-fill" style="position:absolute; left:0; top:0; bottom:0; width:0%; background:var(--danger-bg); opacity:0.55; transition:width 70ms linear; z-index:0;"></div>
+        <i class="ti ti-microphone" aria-hidden="true" style="font-size:17px; z-index:1; position:relative;"></i>
+        <span id="record-btn-label" style="z-index:1; position:relative;">Spreek je antwoord in</span>
       </button>
       <p id="mic-hint" style="font-size:11.5px; color:var(--text-tertiary); margin:0 0 10px; line-height:1.5; display:none;">
         Je browser kan de eerste keer om microfoontoegang vragen — kies "Toestaan". Als je dit bestand
         opent door erop te dubbelklikken (file://), kan dit elke sessie opnieuw gebeuren; dat is een
         browserbeveiliging en geen bug in de app.
       </p>
+
+      <div id="auto-send-banner" style="display:none; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; padding:8px 10px; background:var(--info-bg); border-radius:var(--radius-md); font-size:12.5px; color:var(--info-text);">
+        <span id="auto-send-label">Versturen in <strong id="auto-send-countdown">1.5</strong>s...</span>
+        <button id="cancel-auto-send-btn" style="padding:4px 10px; font-size:12px; background:var(--bg-primary);">Annuleren</button>
+      </div>
+
+      <p id="interim-transcript" style="display:none; font-size:14px; font-weight:600; color:var(--info-text); margin:0 0 6px; min-height:1.2em;"></p>
 
       <div style="display:flex; gap:8px; align-items:center;">
         <input type="text" id="chat-input" placeholder="Of typ je antwoord hier..." style="flex:1; height:44px;" />
@@ -559,6 +591,11 @@ let recordingBaseText = "";
 let voicesCache = [];
 let recognition = null;
 let speechSupported = true;
+let audioContext = null;
+let analyserNode = null;
+let micStream = null;
+let volumeMeterRAF = null;
+let summaryShownThisSession = false;
 
 // ---------- Setup screen ----------
 const setupScreen = document.getElementById("setup-screen");
@@ -696,6 +733,52 @@ function renderMenu() {
   });
 }
 renderMenu();
+renderStreakBadge();
+
+async function startVolumeMeter() {
+  try {
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const source = audioContext.createMediaStreamSource(micStream);
+    analyserNode = audioContext.createAnalyser();
+    analyserNode.fftSize = 256;
+    analyserNode.smoothingTimeConstant = 0.6;
+    source.connect(analyserNode);
+
+    const data = new Uint8Array(analyserNode.frequencyBinCount);
+    const fill = document.getElementById("volume-meter-fill");
+
+    function tick() {
+      analyserNode.getByteFrequencyData(data);
+      let sum = 0;
+      for (let i = 0; i < data.length; i++) sum += data[i];
+      const avg = sum / data.length; // 0-255
+      const pct = Math.min(100, (avg / 90) * 100); // scaled for typical speech levels
+      if (fill) fill.style.width = pct + "%";
+      volumeMeterRAF = requestAnimationFrame(tick);
+    }
+    tick();
+  } catch {
+    // Mic access for the volume meter failed silently; SpeechRecognition will still
+    // surface its own permission error separately, so we don't need to duplicate it here.
+  }
+}
+
+function stopVolumeMeter() {
+  if (volumeMeterRAF) cancelAnimationFrame(volumeMeterRAF);
+  volumeMeterRAF = null;
+  const fill = document.getElementById("volume-meter-fill");
+  if (fill) fill.style.width = "0%";
+  if (micStream) {
+    micStream.getTracks().forEach(t => t.stop());
+    micStream = null;
+  }
+  if (audioContext) {
+    audioContext.close();
+    audioContext = null;
+  }
+  analyserNode = null;
+}
 
 // ---------- Speech setup ----------
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -713,13 +796,19 @@ if (!SR) {
   recognition.onresult = (event) => {
     const result = event.results[0];
     const chatInput = document.getElementById("chat-input");
+    const interimEl = document.getElementById("interim-transcript");
     const base = recordingBaseText;
 
     if (!result.isFinal) {
-      // Live preview while still speaking.
-      chatInput.value = base ? base + " " + result[0].transcript : result[0].transcript;
+      // Live preview while still speaking, shown bold/colored above the input.
+      const live = result[0].transcript;
+      interimEl.textContent = base ? base + " " + live : live;
+      interimEl.style.display = "block";
       return;
     }
+
+    interimEl.style.display = "none";
+    interimEl.textContent = "";
 
     // Final result: fill the box with the top guess, and offer alternatives if they differ meaningfully.
     const alternatives = [];
@@ -734,12 +823,15 @@ if (!SR) {
 
     if (alternatives.length > 1) {
       showTranscriptAlternatives(alternatives, base);
+      // Don't auto-send while there's ambiguity to resolve — let the student pick first.
     } else {
       hideTranscriptAlternatives();
+      if (chatInput.value.trim()) scheduleAutoSend();
     }
   };
   recognition.onerror = (event) => {
     setRecognizing(false);
+    stopVolumeMeter();
     if (event.error === "not-allowed" || event.error === "permission-denied") {
       showChatError(
         "Microphone access was blocked. Check your browser's address bar or site settings for a microphone icon, and allow access. " +
@@ -751,7 +843,10 @@ if (!SR) {
       showChatError(`Voice input error: ${event.error}. You can type your answer instead.`);
     }
   };
-  recognition.onend = () => setRecognizing(false);
+  recognition.onend = () => {
+    setRecognizing(false);
+    stopVolumeMeter();
+  };
 }
 
 if ("speechSynthesis" in window) {
@@ -820,18 +915,59 @@ function hideTranscriptAlternatives() {
   document.getElementById("transcript-alternatives").style.display = "none";
 }
 
+// ---------- Auto-send after speech recognition ----------
+let autoSendTimeout = null;
+let autoSendInterval = null;
+const AUTO_SEND_DELAY_MS = 1400;
+
+function scheduleAutoSend() {
+  cancelPendingAutoSend();
+  const banner = document.getElementById("auto-send-banner");
+  const countdownEl = document.getElementById("auto-send-countdown");
+  let remaining = AUTO_SEND_DELAY_MS / 1000;
+  countdownEl.textContent = remaining.toFixed(1);
+  banner.style.display = "flex";
+
+  autoSendInterval = setInterval(() => {
+    remaining = Math.max(0, remaining - 0.1);
+    countdownEl.textContent = remaining.toFixed(1);
+  }, 100);
+
+  autoSendTimeout = setTimeout(() => {
+    cancelPendingAutoSend();
+    sendMessage();
+  }, AUTO_SEND_DELAY_MS);
+}
+
+function cancelPendingAutoSend() {
+  if (autoSendTimeout) clearTimeout(autoSendTimeout);
+  if (autoSendInterval) clearInterval(autoSendInterval);
+  autoSendTimeout = null;
+  autoSendInterval = null;
+  const banner = document.getElementById("auto-send-banner");
+  if (banner) banner.style.display = "none";
+}
+
+document.getElementById("cancel-auto-send-btn").addEventListener("click", () => {
+  cancelPendingAutoSend();
+  chatInput.focus();
+});
+
 document.getElementById("record-btn").addEventListener("click", () => {
   if (!recognition) return;
   if (recognizing) {
     recognition.stop();
     setRecognizing(false);
+    stopVolumeMeter();
   } else {
     hideChatError();
     hideTranscriptAlternatives();
+    cancelPendingAutoSend();
     recordingBaseText = document.getElementById("chat-input").value.trim();
     try {
       recognition.start();
       setRecognizing(true);
+      startVolumeMeter();
     } catch {
       setRecognizing(false);
     }
@@ -845,14 +981,22 @@ const chatLog = document.getElementById("chat-log");
 const chatInput = document.getElementById("chat-input");
 const sendBtn = document.getElementById("send-btn");
 const chatErrorEl = document.getElementById("chat-error");
+const chatErrorRow = document.getElementById("chat-error-row");
+const retryBtn = document.getElementById("retry-btn");
+let lastFailedSend = null; // { history, userTextAlreadyPushed: true }
 
 function hideChatError() {
-  chatErrorEl.style.display = "none";
+  chatErrorRow.style.display = "none";
 }
-function showChatError(msg) {
+function showChatError(msg, retryable = false) {
   chatErrorEl.textContent = msg;
-  chatErrorEl.style.display = "block";
+  chatErrorRow.style.display = "flex";
+  retryBtn.style.display = retryable ? "inline-flex" : "none";
 }
+
+retryBtn.addEventListener("click", () => {
+  if (lastFailedSend) retrySend();
+});
 
 function startScenario(s) {
   currentScenario = s;
@@ -868,10 +1012,14 @@ function startScenario(s) {
   chatScreen.style.display = "block";
   hideChatError();
   hideTranscriptAlternatives();
+  cancelPendingAutoSend();
   recordingBaseText = "";
   chatInput.value = "";
   updateSendButton();
+  document.getElementById("session-summary").style.display = "none";
+  summaryShownThisSession = false;
   renderChatLog();
+  updateDepthIndicator();
   setTimeout(() => speak(s.opener), 300);
 
   if (speechSupported && !sessionStorage.getItem("dutch_practice_mic_hint_seen")) {
@@ -968,6 +1116,7 @@ function updateSendButton() {
 chatInput.addEventListener("input", () => {
   updateSendButton();
   hideTranscriptAlternatives();
+  cancelPendingAutoSend();
 });
 chatInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey) {
@@ -1075,9 +1224,157 @@ async function callModel(systemText, userText) {
   return content;
 }
 
+function extractJSON(rawText) {
+  // 1. Try the obvious case: strip markdown code fences, parse directly.
+  let cleaned = rawText.trim().replace(/^```json\s*|^```\s*|```$/g, "").trim();
+  try {
+    return JSON.parse(cleaned);
+  } catch {}
+
+  // 2. Models sometimes add preamble/postamble text around the JSON object.
+  //    Find the first '{' and the matching last '}' and try that slice.
+  const firstBrace = cleaned.indexOf("{");
+  const lastBrace = cleaned.lastIndexOf("}");
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    const slice = cleaned.slice(firstBrace, lastBrace + 1);
+    try {
+      return JSON.parse(slice);
+    } catch {}
+  }
+
+  // 3. Last resort: regex out individual fields directly, in case brace matching
+  //    failed due to unescaped quotes deep inside a field value.
+  const field = (name) => {
+    const m = cleaned.match(new RegExp(`"${name}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"`, "s"));
+    return m ? m[1].replace(/\\"/g, '"').replace(/\\n/g, "\n") : null;
+  };
+  const characterReply = field("characterReply");
+  if (characterReply) {
+    return {
+      characterReply,
+      correction: field("correction"),
+      tip: field("tip"),
+      encouragement: field("encouragement"),
+      suggestion: field("suggestion"),
+    };
+  }
+
+  throw new Error("Could not parse a valid response from the model.");
+}
+
+// ---------- Progress tracking ----------
+function getISOWeekKey(date = new Date()) {
+  // Monday-based ISO week, used as a stable key so "this week" resets predictably.
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  return `${d.getUTCFullYear()}-W${weekNo}`;
+}
+
+function loadProgress() {
+  try {
+    const raw = localStorage.getItem("dutch_practice_progress");
+    return raw ? JSON.parse(raw) : { weekKey: null, sessionDates: [] };
+  } catch {
+    return { weekKey: null, sessionDates: [] };
+  }
+}
+
+function saveProgress(progress) {
+  try {
+    localStorage.setItem("dutch_practice_progress", JSON.stringify(progress));
+  } catch {}
+}
+
+// Records one practiced session per scenario per calendar day (so re-sending many
+// messages in one sitting doesn't inflate the count, but practicing multiple
+// scenarios in a day, or coming back later, does).
+function recordSessionProgress() {
+  const today = new Date().toISOString().slice(0, 10);
+  const sessionId = `${today}:${currentScenario ? currentScenario.id : "unknown"}`;
+  const progress = loadProgress();
+  const weekKey = getISOWeekKey();
+
+  if (progress.weekKey !== weekKey) {
+    progress.weekKey = weekKey;
+    progress.sessionDates = [];
+  }
+  if (!progress.sessionDates.includes(sessionId)) {
+    progress.sessionDates.push(sessionId);
+    saveProgress(progress);
+  }
+  renderStreakBadge();
+}
+
+function renderStreakBadge() {
+  const progress = loadProgress();
+  const weekKey = getISOWeekKey();
+  const count = progress.weekKey === weekKey ? progress.sessionDates.length : 0;
+  const textEl = document.getElementById("streak-text");
+  if (textEl) {
+    textEl.textContent = `${count} ${count === 1 ? "sessie" : "sessies"} deze week`;
+  }
+}
+
+// ---------- Mini error/improvement summary ----------
+function maybeShowSessionSummary() {
+  const userTurnCount = messages.filter(m => m.role === "user").length;
+  if (summaryShownThisSession || userTurnCount < 4) return;
+  // Show once, after the 4th or 5th completed turn, then leave it visible (won't re-trigger).
+  if (userTurnCount > 5) return;
+  summaryShownThisSession = true;
+
+  const corrections = messages.filter(m => m.role === "assistant" && m.correction).map(m => m.correction);
+  const goodMoments = messages.filter(m => m.role === "assistant" && m.encouragement).map(m => m.encouragement);
+  const tips = messages.filter(m => m.role === "assistant" && m.tip).map(m => m.tip);
+
+  const panel = document.getElementById("session-summary");
+  const content = document.getElementById("session-summary-content");
+  if (!panel || !content) return;
+
+  if (corrections.length === 0 && goodMoments.length === 0) {
+    panel.style.display = "none";
+    return;
+  }
+
+  let html = "";
+  if (corrections.length > 0) {
+    html += `<p style="margin:0 0 6px; font-weight:500;">Veelvoorkomende correcties:</p><ul style="margin:0 0 10px; padding-left:18px; color:var(--text-secondary);">`;
+    corrections.slice(0, 3).forEach(c => {
+      html += `<li style="margin-bottom:4px;">${escapeHtml(c)}</li>`;
+    });
+    html += `</ul>`;
+  }
+  if (goodMoments.length > 0 || tips.length > 0) {
+    const highlights = [...goodMoments, ...tips].slice(0, 3);
+    html += `<p style="margin:0 0 6px; font-weight:500;">Goed gebruikte woorden/zinnen:</p><ul style="margin:0; padding-left:18px; color:var(--text-secondary);">`;
+    highlights.forEach(h => {
+      html += `<li style="margin-bottom:4px;">${escapeHtml(h)}</li>`;
+    });
+    html += `</ul>`;
+  }
+
+  content.innerHTML = html;
+  panel.style.display = "block";
+}
+
+function updateDepthIndicator() {
+  const userTurns = messages.filter(m => m.role === "user").length;
+  const fill = document.getElementById("depth-bar-fill");
+  const label = document.getElementById("depth-label");
+  if (!fill || !label) return;
+  const target = 8; // turns at which the bar is considered "full" for this session
+  const pct = Math.min(100, (userTurns / target) * 100);
+  fill.style.width = pct + "%";
+  label.textContent = `${userTurns} ${userTurns === 1 ? "beurt" : "beurten"}`;
+}
+
 async function sendMessage() {
   const text = chatInput.value.trim();
   if (!text || loading) return;
+  cancelPendingAutoSend();
   chatInput.value = "";
   recordingBaseText = "";
   updateSendButton();
@@ -1087,7 +1384,20 @@ async function sendMessage() {
   messages.push({ role: "user", text });
   loading = true;
   renderChatLog();
+  updateDepthIndicator();
 
+  await runModelTurn();
+}
+
+async function retrySend() {
+  if (!lastFailedSend || loading) return;
+  hideChatError();
+  loading = true;
+  renderChatLog();
+  await runModelTurn();
+}
+
+async function runModelTurn() {
   try {
     const history = messages
       .map(m => m.role === "user"
@@ -1100,8 +1410,7 @@ async function sendMessage() {
       `Gesprek tot nu toe:\n${history}\n\nGeef je volgende antwoord als JSON volgens het gespecificeerde formaat.`
     );
 
-    const cleaned = rawText.trim().replace(/^```json\s*|```$/g, "");
-    const parsed = JSON.parse(cleaned);
+    const parsed = extractJSON(rawText);
 
     messages.push({
       role: "assistant",
@@ -1112,13 +1421,22 @@ async function sendMessage() {
       suggestion: parsed.suggestion || null,
     });
     if (autoSpeak) speak(parsed.characterReply);
+    lastFailedSend = null;
+    recordSessionProgress();
+    maybeShowSessionSummary();
   } catch (e) {
-    showChatError(e.message || "Something went wrong reaching the conversation partner. Try sending your message again.");
+    lastFailedSend = true;
+    showChatError(
+      e.message || "Something went wrong reaching the conversation partner. Try sending your message again.",
+      true
+    );
   } finally {
     loading = false;
     renderChatLog();
+    updateDepthIndicator();
   }
 }
+
 </script>
 </body>
 </html>
