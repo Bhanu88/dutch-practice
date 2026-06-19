@@ -782,6 +782,7 @@ function stopVolumeMeter() {
 
 // ---------- Speech setup ----------
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let gotResultThisSession = false;
 if (!SR) {
   speechSupported = false;
   document.getElementById("speech-unsupported").style.display = "block";
@@ -794,6 +795,7 @@ if (!SR) {
   recognition.maxAlternatives = 4;
 
   recognition.onresult = (event) => {
+    gotResultThisSession = true;
     const result = event.results[0];
     const chatInput = document.getElementById("chat-input");
     const interimEl = document.getElementById("interim-transcript");
@@ -829,7 +831,12 @@ if (!SR) {
       if (chatInput.value.trim()) scheduleAutoSend();
     }
   };
+  recognition.onnomatch = () => {
+    gotResultThisSession = true; // treat as "handled" so onend doesn't also complain
+    showChatError("That wasn't recognized clearly enough — try again, a bit slower and closer to the microphone.");
+  };
   recognition.onerror = (event) => {
+    gotResultThisSession = true; // onerror already shows a message; don't double up via onend
     setRecognizing(false);
     stopVolumeMeter();
     if (event.error === "not-allowed" || event.error === "permission-denied") {
@@ -846,8 +853,33 @@ if (!SR) {
   recognition.onend = () => {
     setRecognizing(false);
     stopVolumeMeter();
+    if (!gotResultThisSession) {
+      // Recording started and ended with no result, no nomatch, and no error event at all —
+      // seen on some Android Chrome builds. Surface this so it's never silent.
+      showChatError("No speech was picked up. Try moving closer to the microphone, or type your answer instead.");
+    }
   };
 }
+
+document.getElementById("record-btn").addEventListener("click", () => {
+  if (!recognition) return;
+  if (recognizing) {
+    recognition.stop();
+  } else {
+    hideChatError();
+    hideTranscriptAlternatives();
+    cancelPendingAutoSend();
+    gotResultThisSession = false;
+    recordingBaseText = document.getElementById("chat-input").value.trim();
+    try {
+      recognition.start();
+      setRecognizing(true);
+      startVolumeMeter();
+    } catch {
+      setRecognizing(false);
+    }
+  }
+});
 
 if ("speechSynthesis" in window) {
   function loadVoices() { voicesCache = window.speechSynthesis.getVoices(); }
@@ -951,27 +983,6 @@ function cancelPendingAutoSend() {
 document.getElementById("cancel-auto-send-btn").addEventListener("click", () => {
   cancelPendingAutoSend();
   chatInput.focus();
-});
-
-document.getElementById("record-btn").addEventListener("click", () => {
-  if (!recognition) return;
-  if (recognizing) {
-    recognition.stop();
-    setRecognizing(false);
-    stopVolumeMeter();
-  } else {
-    hideChatError();
-    hideTranscriptAlternatives();
-    cancelPendingAutoSend();
-    recordingBaseText = document.getElementById("chat-input").value.trim();
-    try {
-      recognition.start();
-      setRecognizing(true);
-      startVolumeMeter();
-    } catch {
-      setRecognizing(false);
-    }
-  }
 });
 
 // ---------- Chat screen ----------
