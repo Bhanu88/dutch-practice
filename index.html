@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Spreekpraktijk — Nederlands oefenen</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.47.0/iconfont/tabler-icons.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.44.0/dist/tabler-icons.min.css">
 <style>
   :root {
     --bg-primary: #ffffff;
@@ -129,7 +129,29 @@
     .shell { padding: 1.5rem 1rem 2rem; }
     #setup-screen .card { margin-top: 1.5rem !important; padding: 1.25rem; }
   }
+  /* Fallback if the icon webfont fails to load: show a small dot instead of an empty box */
+  html.icons-failed i.ti {
+    display: inline-block;
+    width: 0.5em;
+    height: 0.5em;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.6;
+  }
 </style>
+<script>
+  // Detect whether the Tabler icon webfont actually loaded; if not, mark <html> so CSS can fall back.
+  if ("fonts" in document) {
+    document.fonts.ready.then(() => {
+      const loaded = [...document.fonts].some(f => f.family.toLowerCase().includes("tabler"));
+      if (!loaded) document.documentElement.classList.add("icons-failed");
+    });
+    setTimeout(() => {
+      const loaded = [...document.fonts].some(f => f.family.toLowerCase().includes("tabler") && f.status === "loaded");
+      if (!loaded) document.documentElement.classList.add("icons-failed");
+    }, 2500);
+  }
+</script>
 </head>
 <body>
 
@@ -167,8 +189,8 @@
       </button>
       <p id="provider-help" style="font-size: 12px; color: var(--text-tertiary); margin: 14px 0 0; line-height: 1.6;"></p>
       <p style="font-size: 11.5px; color: var(--text-tertiary); margin: 10px 0 0; line-height: 1.5;">
-        Let op: dit wordt opgeslagen in sessionStorage, dus je moet de key opnieuw invoeren als je
-        deze browsertab of het venster sluit.
+        Dit wordt lokaal in je browser opgeslagen (localStorage) en blijft bewaard tussen bezoeken,
+        ook na het sluiten van de browser. Het wordt nooit naar een andere plek dan de gekozen provider gestuurd.
       </p>
     </div>
   </div>
@@ -245,6 +267,13 @@
           <i class="ti ti-send" aria-hidden="true" style="font-size:17px;"></i>
         </button>
       </div>
+
+      <div id="transcript-alternatives" style="display:none; margin-top:8px; padding:10px; background:var(--bg-secondary); border:0.5px solid var(--border-tertiary); border-radius:var(--radius-md);">
+        <p style="font-size:11.5px; color:var(--text-tertiary); margin:0 0 6px; font-weight:500;">
+          Niet helemaal goed gehoord? Kies wat je echt zei:
+        </p>
+        <div id="transcript-alternatives-list" style="display:flex; flex-direction:column; gap:4px;"></div>
+      </div>
     </div>
 
   </div>
@@ -277,13 +306,13 @@ const SCENARIOS = [
     opener: "Hallo, ik ben Femke. Wat brengt jou naar dit evenement?",
   },
   {
-    id: "bakker", icon: "ti-shopping-bag", title: "Bij de bakker",
+    id: "bakker", icon: "ti-bread", title: "Bij de bakker",
     subtitle: "Everyday chat at a local shop", group: "Shop & restaurant",
     role: "Je bent de bakker, vriendelijk en spraakzaam. Je maakt een praatje met de klant terwijl je helpt, over het weer, de buurt of wat ze gaat doen met het brood.",
     opener: "Zo, wat mag het zijn vandaag?",
   },
   {
-    id: "restaurant", icon: "ti-tools-kitchen-2", title: "Restaurant",
+    id: "restaurant", icon: "ti-chef-hat", title: "Restaurant",
     subtitle: "Ordering food and asking for the bill", group: "Shop & restaurant",
     role: "Je bent een ober in een gezellig restaurant. Je begroet de gast, neemt de bestelling op, beantwoordt vragen over het menu en helpt aan het einde met de rekening.",
     opener: "Goedenavond! Heeft u al even kunnen kijken naar de kaart, of mag ik u iets te drinken brengen?",
@@ -331,13 +360,13 @@ const SCENARIOS = [
     opener: "Hallo, ik hoorde dat er een probleem was vanavond. Vertelt u me wat er aan de hand is.",
   },
   {
-    id: "dokter", icon: "ti-stethoscope", title: "Bij de dokter",
+    id: "dokter", icon: "ti-first-aid-kit", title: "Bij de dokter",
     subtitle: "Describing symptoms at a doctor's appointment", group: "Practical situations",
     role: "Je bent een arts. De patiënt heeft een afspraak en voelt zich niet goed. Je vraagt naar de klachten, of er koorts is, en of de patiënt medicijnen gebruikt. Je bent rustig, geduldig en duidelijk.",
     opener: "Hallo, hoe gaat het vandaag met je? Wat is er aan de hand?",
   },
   {
-    id: "digitale-vergadering", icon: "ti-video", title: "Digitale vergadering",
+    id: "digitale-vergadering", icon: "ti-camera", title: "Digitale vergadering",
     subtitle: "Joining an online meeting with technical hiccups", group: "Practical situations",
     role: "Je bent Annie, een collega die deelneemt aan een digitale vergadering. Er zijn lichte technische problemen (microfoon, verbinding). Je bent geduldig en helpt de gebruiker om de problemen op te lossen, en praat ook over voor- en nadelen van thuiswerken.",
     opener: "Hallo! Kan je me horen? Volgens mij staat je microfoon nog uit.",
@@ -373,13 +402,13 @@ const SCENARIOS = [
     opener: "Hoi, ben jij nieuw hier op het werk? Wat leuk, welkom! Wat ga je doen?",
   },
   {
-    id: "yogales", icon: "ti-stretching", title: "Yogales",
+    id: "yogales", icon: "ti-heartbeat", title: "Yogales",
     subtitle: "Following spoken instructions in a yoga class", group: "Practical situations",
     role: "Je bent een yoga-instructeur. Je geeft de gebruiker rustig instructies tijdens een les (ademen, armen strekken, bewegen). Je bent kalm en duidelijk, en vraagt af en toe hoe het gaat.",
     opener: "Welkom bij yoga! Leuk je te zien. Voel je je goed vandaag? Laten we beginnen: ga zitten en sluit je ogen.",
   },
   {
-    id: "bowlingbaan", icon: "ti-ball", title: "Bowlingbaan reserveren",
+    id: "bowlingbaan", icon: "ti-ball-bowling", title: "Bowlingbaan reserveren",
     subtitle: "Booking a lane and asking practical questions", group: "Shop & restaurant",
     role: "Je bent een medewerker van een bowlingcentrum. Een klant wil een baan reserveren en heeft praktische vragen (beschikbaarheid, schoenen, toilet, eten). Soms is niet alles beschikbaar, en je legt dat vriendelijk uit.",
     opener: "Hallo, welkom! Waarmee kan ik je helpen?",
@@ -403,13 +432,13 @@ const SCENARIOS = [
     opener: "Oké, laten we even plannen. Ik heb een paar opties, wat denk jij dat de beste is?",
   },
   {
-    id: "huis-verhuur", icon: "ti-building-house", title: "Je woning beschrijven aan een huurder",
+    id: "huis-verhuur", icon: "ti-home-2", title: "Je woning beschrijven aan een huurder",
     subtitle: "Describing your home to a prospective renter", group: "Practical situations",
     role: "Je bent geïnteresseerd in het huren van de woning van de gebruiker. Je stelt vragen over de kamers, de buurt, en de voorzieningen. Je bent nieuwsgierig en praktisch.",
     opener: "Hallo, dankjewel dat ik mag komen kijken. Kun je me wat meer vertellen over de woning?",
   },
   {
-    id: "vakantieplannen", icon: "ti-sun", title: "Over vakantieplannen praten",
+    id: "vakantieplannen", icon: "ti-beach", title: "Over vakantieplannen praten",
     subtitle: "Casual catch-up about upcoming holiday plans", group: "Social",
     role: "Je bent een vriend of collega die de gebruiker tegenkomt en vraagt naar vakantieplannen. Je bent enthousiast en nieuwsgierig, reageert positief en vertelt ook over je eigen plannen.",
     opener: "Hé! Wat ga jij doen met je vakantie?",
@@ -514,7 +543,7 @@ const PROVIDERS = {
 // ---------- State ----------
 let savedConfig = null;
 try {
-  const raw = sessionStorage.getItem("dutch_practice_config");
+  const raw = localStorage.getItem("dutch_practice_config");
   savedConfig = raw ? JSON.parse(raw) : null;
 } catch { savedConfig = null; }
 
@@ -526,6 +555,7 @@ let messages = [];
 let loading = false;
 let autoSpeak = true;
 let recognizing = false;
+let recordingBaseText = "";
 let voicesCache = [];
 let recognition = null;
 let speechSupported = true;
@@ -600,7 +630,7 @@ document.getElementById("save-key-btn").addEventListener("click", () => {
   modelId = modelSelect.value;
 
   try {
-    sessionStorage.setItem("dutch_practice_config", JSON.stringify({ apiKey, providerId, modelId }));
+    localStorage.setItem("dutch_practice_config", JSON.stringify({ apiKey, providerId, modelId }));
   } catch {}
 
   showApp();
@@ -677,14 +707,36 @@ if (!SR) {
   recognition = new SR();
   recognition.lang = "nl-NL";
   recognition.continuous = false;
-  recognition.interimResults = false;
-  recognition.maxAlternatives = 1;
+  recognition.interimResults = true;
+  recognition.maxAlternatives = 4;
 
   recognition.onresult = (event) => {
-    const transcript = event.results[0][0].transcript;
+    const result = event.results[0];
     const chatInput = document.getElementById("chat-input");
-    chatInput.value = chatInput.value ? chatInput.value + " " + transcript : transcript;
+    const base = recordingBaseText;
+
+    if (!result.isFinal) {
+      // Live preview while still speaking.
+      chatInput.value = base ? base + " " + result[0].transcript : result[0].transcript;
+      return;
+    }
+
+    // Final result: fill the box with the top guess, and offer alternatives if they differ meaningfully.
+    const alternatives = [];
+    for (let i = 0; i < result.length; i++) {
+      const t = result[i].transcript.trim();
+      if (t && !alternatives.includes(t)) alternatives.push(t);
+    }
+    const finalText = alternatives[0] || "";
+    chatInput.value = base ? base + " " + finalText : finalText;
+    recordingBaseText = chatInput.value;
     updateSendButton();
+
+    if (alternatives.length > 1) {
+      showTranscriptAlternatives(alternatives, base);
+    } else {
+      hideTranscriptAlternatives();
+    }
   };
   recognition.onerror = (event) => {
     setRecognizing(false);
@@ -743,6 +795,31 @@ function setRecognizing(val) {
   }
 }
 
+function showTranscriptAlternatives(alternatives, base) {
+  const container = document.getElementById("transcript-alternatives");
+  const list = document.getElementById("transcript-alternatives-list");
+  list.innerHTML = "";
+  alternatives.slice(0, 4).forEach((alt) => {
+    const btn = document.createElement("button");
+    btn.textContent = base ? `${base} ${alt}` : alt;
+    btn.style.cssText = "text-align:left; font-size:13px; padding:7px 10px; background:var(--bg-primary);";
+    btn.addEventListener("click", () => {
+      const chatInput = document.getElementById("chat-input");
+      chatInput.value = base ? `${base} ${alt}` : alt;
+      recordingBaseText = chatInput.value;
+      updateSendButton();
+      hideTranscriptAlternatives();
+      chatInput.focus();
+    });
+    list.appendChild(btn);
+  });
+  container.style.display = "block";
+}
+
+function hideTranscriptAlternatives() {
+  document.getElementById("transcript-alternatives").style.display = "none";
+}
+
 document.getElementById("record-btn").addEventListener("click", () => {
   if (!recognition) return;
   if (recognizing) {
@@ -750,6 +827,8 @@ document.getElementById("record-btn").addEventListener("click", () => {
     setRecognizing(false);
   } else {
     hideChatError();
+    hideTranscriptAlternatives();
+    recordingBaseText = document.getElementById("chat-input").value.trim();
     try {
       recognition.start();
       setRecognizing(true);
@@ -788,6 +867,8 @@ function startScenario(s) {
   menuScreen.style.display = "none";
   chatScreen.style.display = "block";
   hideChatError();
+  hideTranscriptAlternatives();
+  recordingBaseText = "";
   chatInput.value = "";
   updateSendButton();
   renderChatLog();
@@ -884,7 +965,10 @@ function escapeHtml(str) {
 function updateSendButton() {
   sendBtn.disabled = loading || !chatInput.value.trim();
 }
-chatInput.addEventListener("input", updateSendButton);
+chatInput.addEventListener("input", () => {
+  updateSendButton();
+  hideTranscriptAlternatives();
+});
 chatInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey) {
     e.preventDefault();
@@ -995,8 +1079,10 @@ async function sendMessage() {
   const text = chatInput.value.trim();
   if (!text || loading) return;
   chatInput.value = "";
+  recordingBaseText = "";
   updateSendButton();
   hideChatError();
+  hideTranscriptAlternatives();
 
   messages.push({ role: "user", text });
   loading = true;
