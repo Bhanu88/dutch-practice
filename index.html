@@ -735,7 +735,28 @@ function renderMenu() {
 renderMenu();
 renderStreakBadge();
 
+// iOS Safari (and WebKit-based browsers on iOS) handle concurrent microphone sessions
+// poorly: running a separate getUserMedia stream for the volume meter at the same time
+// SpeechRecognition is using the mic causes random, intermittent recognition failures.
+// We detect iOS and skip the real audio-analysis meter there, using a lightweight pulse
+// animation instead so there's still visual feedback without touching the microphone twice.
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
 async function startVolumeMeter() {
+  const fill = document.getElementById("volume-meter-fill");
+  if (isIOS) {
+    // Safe fallback: a gentle pulse so the button still visibly reacts to "listening",
+    // without opening a second mic stream that would fight with SpeechRecognition.
+    if (fill) {
+      fill.style.transition = "width 900ms ease-in-out";
+      fill.style.width = "55%";
+      volumeMeterRAF = setInterval(() => {
+        fill.style.width = fill.style.width === "55%" ? "20%" : "55%";
+      }, 900);
+    }
+    return;
+  }
   try {
     micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -746,7 +767,6 @@ async function startVolumeMeter() {
     source.connect(analyserNode);
 
     const data = new Uint8Array(analyserNode.frequencyBinCount);
-    const fill = document.getElementById("volume-meter-fill");
 
     function tick() {
       analyserNode.getByteFrequencyData(data);
@@ -765,9 +785,18 @@ async function startVolumeMeter() {
 }
 
 function stopVolumeMeter() {
+  const fill = document.getElementById("volume-meter-fill");
+  if (isIOS) {
+    if (volumeMeterRAF) clearInterval(volumeMeterRAF);
+    volumeMeterRAF = null;
+    if (fill) {
+      fill.style.transition = "width 200ms ease";
+      fill.style.width = "0%";
+    }
+    return;
+  }
   if (volumeMeterRAF) cancelAnimationFrame(volumeMeterRAF);
   volumeMeterRAF = null;
-  const fill = document.getElementById("volume-meter-fill");
   if (fill) fill.style.width = "0%";
   if (micStream) {
     micStream.getTracks().forEach(t => t.stop());
