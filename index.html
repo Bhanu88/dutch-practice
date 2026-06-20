@@ -783,18 +783,25 @@ function stopVolumeMeter() {
 // ---------- Speech setup ----------
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let gotResultThisSession = false;
+
 if (!SR) {
   speechSupported = false;
   document.getElementById("speech-unsupported").style.display = "block";
   document.getElementById("record-btn").style.display = "none";
-} else {
-  recognition = new SR();
-  recognition.lang = "nl-NL";
-  recognition.continuous = false;
-  recognition.interimResults = true;
-  recognition.maxAlternatives = 4;
+}
 
-  recognition.onresult = (event) => {
+// iOS Safari (and some Android Chrome builds) leave a SpeechRecognition instance in a
+// stale state after one full start/stop cycle — reusing the same object can silently
+// stop producing results on the second attempt. Building a brand new instance for
+// every recording, with handlers re-attached each time, avoids that entirely.
+function createRecognitionInstance() {
+  const r = new SR();
+  r.lang = "nl-NL";
+  r.continuous = false;
+  r.interimResults = true;
+  r.maxAlternatives = 4;
+
+  r.onresult = (event) => {
     gotResultThisSession = true;
     const result = event.results[0];
     const chatInput = document.getElementById("chat-input");
@@ -831,11 +838,11 @@ if (!SR) {
       if (chatInput.value.trim()) scheduleAutoSend();
     }
   };
-  recognition.onnomatch = () => {
+  r.onnomatch = () => {
     gotResultThisSession = true; // treat as "handled" so onend doesn't also complain
     showChatError("That wasn't recognized clearly enough — try again, a bit slower and closer to the microphone.");
   };
-  recognition.onerror = (event) => {
+  r.onerror = (event) => {
     gotResultThisSession = true; // onerror already shows a message; don't double up via onend
     setRecognizing(false);
     stopVolumeMeter();
@@ -850,27 +857,29 @@ if (!SR) {
       showChatError(`Voice input error: ${event.error}. You can type your answer instead.`);
     }
   };
-  recognition.onend = () => {
+  r.onend = () => {
     setRecognizing(false);
     stopVolumeMeter();
     if (!gotResultThisSession) {
       // Recording started and ended with no result, no nomatch, and no error event at all —
-      // seen on some Android Chrome builds. Surface this so it's never silent.
+      // seen on some Android Chrome builds and on repeat attempts in iOS Safari.
       showChatError("No speech was picked up. Try moving closer to the microphone, or type your answer instead.");
     }
   };
+  return r;
 }
 
 document.getElementById("record-btn").addEventListener("click", () => {
-  if (!recognition) return;
+  if (!speechSupported) return;
   if (recognizing) {
-    recognition.stop();
+    if (recognition) recognition.stop();
   } else {
     hideChatError();
     hideTranscriptAlternatives();
     cancelPendingAutoSend();
     gotResultThisSession = false;
     recordingBaseText = document.getElementById("chat-input").value.trim();
+    recognition = createRecognitionInstance();
     try {
       recognition.start();
       setRecognizing(true);
@@ -880,6 +889,7 @@ document.getElementById("record-btn").addEventListener("click", () => {
     }
   }
 });
+
 
 if ("speechSynthesis" in window) {
   function loadVoices() { voicesCache = window.speechSynthesis.getVoices(); }
