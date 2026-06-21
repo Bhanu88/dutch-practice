@@ -128,6 +128,7 @@
   @media (max-width: 480px) {
     .shell { padding: 1.5rem 1rem 2rem; }
     #setup-screen .card { margin-top: 1.5rem !important; padding: 1.25rem; }
+    #chat-log { height: min(380px, 55vh) !important; }
   }
   /* Fallback if the icon webfont fails to load: show a small dot instead of an empty box */
   html.icons-failed i.ti {
@@ -260,13 +261,18 @@
         <span id="depth-label" style="font-size:11px; color:var(--text-tertiary); flex-shrink:0;">0 beurten</span>
       </div>
 
-      <div id="chat-log" style="background:var(--bg-secondary); border-radius:var(--radius-lg); padding:1rem; max-height:380px; overflow-y:auto; display:flex; flex-direction:column; gap:14px; margin-bottom:1rem;"></div>
+      <div id="chat-log" style="background:var(--bg-secondary); border-radius:var(--radius-lg); padding:1rem; height:min(380px, 50vh); min-height:220px; overflow-y:auto; display:flex; flex-direction:column; gap:14px; margin-bottom:1rem;"></div>
+      <div id="feedback-live-region" class="sr-only" aria-live="polite" role="status"></div>
 
       <div id="session-summary" style="display:none; margin-bottom:1rem; padding:14px; background:var(--bg-secondary); border:0.5px solid var(--border-tertiary); border-radius:var(--radius-lg);">
         <p style="font-size:12px; font-weight:500; margin:0 0 8px; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.04em;">
           Korte samenvatting
         </p>
-        <div id="session-summary-content" style="font-size:13px; line-height:1.6;"></div>
+        <div id="session-summary-content" style="font-size:13px; line-height:1.6; margin-bottom:10px;"></div>
+        <button id="continue-after-summary-btn" style="font-size:12.5px; padding:6px 14px;">
+          <i class="ti ti-player-play" aria-hidden="true" style="font-size:13px; vertical-align:-2px; margin-right:4px;"></i>
+          Doorgaan met het gesprek
+        </button>
       </div>
 
       <div id="chat-error-row" style="display:none; align-items:center; gap:8px; margin-bottom:8px;">
@@ -299,10 +305,17 @@
       <p id="interim-transcript" style="display:none; font-size:14px; font-weight:600; color:var(--info-text); margin:0 0 6px; min-height:1.2em;"></p>
 
       <div style="display:flex; gap:8px; align-items:center;">
-        <input type="text" id="chat-input" placeholder="Of typ je antwoord hier..." style="flex:1; height:44px;" />
+        <input type="text" id="chat-input" maxlength="280" placeholder="Of typ je antwoord hier..." style="flex:1; height:44px;" />
         <button id="send-btn" aria-label="Verstuur" style="width:44px; height:44px; padding:0; flex-shrink:0; display:flex; align-items:center; justify-content:center;" disabled>
           <i class="ti ti-send" aria-hidden="true" style="font-size:17px;"></i>
         </button>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin:4px 2px 0;">
+        <p id="shortcut-hint" style="font-size:11px; color:var(--text-tertiary); margin:0; display:none;">
+          <kbd style="font-family:inherit; border:0.5px solid var(--border-tertiary); border-radius:3px; padding:1px 5px;">Enter</kbd> verstuur ·
+          <kbd style="font-family:inherit; border:0.5px solid var(--border-tertiary); border-radius:3px; padding:1px 5px;">Space</kbd> opnemen
+        </p>
+        <p id="char-counter" style="font-size:11px; color:var(--text-tertiary); margin:0;">0/280</p>
       </div>
 
       <div id="transcript-alternatives" style="display:none; margin-top:8px; padding:10px; background:var(--bg-secondary); border:0.5px solid var(--border-tertiary); border-radius:var(--radius-md);">
@@ -632,6 +645,7 @@ let analyserNode = null;
 let micStream = null;
 let volumeMeterRAF = null;
 let summaryShownThisSession = false;
+let summaryBaselineTurnCount = 0;
 
 // ---------- Setup screen ----------
 const setupScreen = document.getElementById("setup-screen");
@@ -768,8 +782,37 @@ function renderMenu() {
     groupsContainer.appendChild(groupDiv);
   });
 }
+function persistChatState() {
+  if (!currentScenario) return;
+  try {
+    sessionStorage.setItem("dutch_practice_active_chat", JSON.stringify({
+      scenarioId: currentScenario.id,
+      messages,
+    }));
+  } catch {}
+}
+
+function clearPersistedChatState() {
+  try { sessionStorage.removeItem("dutch_practice_active_chat"); } catch {}
+}
+
+function restoreChatIfAny() {
+  let saved = null;
+  try {
+    const raw = sessionStorage.getItem("dutch_practice_active_chat");
+    saved = raw ? JSON.parse(raw) : null;
+  } catch { saved = null; }
+  if (!saved || !saved.scenarioId || !Array.isArray(saved.messages) || saved.messages.length === 0) return;
+
+  const scenario = SCENARIOS.find(s => s.id === saved.scenarioId);
+  if (!scenario) return;
+
+  startScenario(scenario, saved.messages);
+}
+
 renderMenu();
 renderStreakBadge();
+restoreChatIfAny();
 
 // iOS Safari (and WebKit-based browsers on iOS) handle concurrent microphone sessions
 // poorly: running a separate getUserMedia stream for the volume meter at the same time
@@ -778,6 +821,14 @@ renderStreakBadge();
 // animation instead so there's still visual feedback without touching the microphone twice.
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
   (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+// Show the keyboard shortcut hint only on devices that plausibly have a real keyboard —
+// touch-only phones/tablets don't have a Space key to press, so the hint would be noise there.
+const hasLikelyKeyboard = window.matchMedia && window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+if (hasLikelyKeyboard) {
+  const hint = document.getElementById("shortcut-hint");
+  if (hint) hint.style.display = "block";
+}
 
 async function startVolumeMeter() {
   const fill = document.getElementById("volume-meter-fill");
@@ -894,6 +945,7 @@ function createRecognitionInstance() {
     chatInput.value = base ? base + " " + finalText : finalText;
     recordingBaseText = chatInput.value;
     updateSendButton();
+    updateCharCounter();
 
     if (alternatives.length > 1) {
       showTranscriptAlternatives(alternatives, base);
@@ -955,6 +1007,15 @@ document.getElementById("record-btn").addEventListener("click", () => {
   }
 });
 
+document.getElementById("record-btn").addEventListener("keydown", (e) => {
+  // Space already triggers a click on a focused <button> by default, but it also
+  // scrolls the page unless prevented — make the shortcut explicit and scroll-safe.
+  if (e.code === "Space" || e.key === " ") {
+    e.preventDefault();
+    e.currentTarget.click();
+  }
+});
+
 
 if ("speechSynthesis" in window) {
   function loadVoices() { voicesCache = window.speechSynthesis.getVoices(); }
@@ -1010,6 +1071,7 @@ function showTranscriptAlternatives(alternatives, base) {
       chatInput.value = base ? `${base} ${alt}` : alt;
       recordingBaseText = chatInput.value;
       updateSendButton();
+      updateCharCounter();
       hideTranscriptAlternatives();
       chatInput.focus();
     });
@@ -1084,9 +1146,9 @@ retryBtn.addEventListener("click", () => {
   if (lastFailedSend) retrySend();
 });
 
-function startScenario(s) {
+function startScenario(s, restoredMessages = null) {
   currentScenario = s;
-  messages = [{ role: "assistant", characterReply: s.opener, correction: null, tip: null, encouragement: null, suggestion: null }];
+  messages = restoredMessages || [{ role: "assistant", characterReply: s.opener, correction: null, tip: null, encouragement: null, suggestion: null }];
 
   document.getElementById("chat-icon").className = `ti ${s.icon}`;
   document.getElementById("chat-title").textContent = s.title;
@@ -1102,15 +1164,17 @@ function startScenario(s) {
   recordingBaseText = "";
   chatInput.value = "";
   updateSendButton();
+  updateCharCounter();
   document.getElementById("session-summary").style.display = "none";
   summaryShownThisSession = false;
+  summaryBaselineTurnCount = 0;
   sessionCostUSD = 0;
   const costBadge = document.getElementById("session-cost-badge");
   if (costBadge) costBadge.textContent = "~$0.000";
   applyLightModeButtonState();
   renderChatLog();
   updateDepthIndicator();
-  setTimeout(() => speak(s.opener), 300);
+  if (!restoredMessages) setTimeout(() => speak(s.opener), 300);
 
   if (speechSupported && !sessionStorage.getItem("dutch_practice_mic_hint_seen")) {
     document.getElementById("mic-hint").style.display = "block";
@@ -1124,6 +1188,7 @@ document.getElementById("back-to-menu-btn").addEventListener("click", () => {
   menuScreen.style.display = "block";
   currentScenario = null;
   messages = [];
+  clearPersistedChatState();
 });
 
 document.getElementById("toggle-speak-btn").addEventListener("click", (e) => {
@@ -1156,9 +1221,16 @@ document.getElementById("toggle-light-mode-btn").addEventListener("click", () =>
 
 applyLightModeButtonState();
 
+document.getElementById("continue-after-summary-btn").addEventListener("click", () => {
+  document.getElementById("session-summary").style.display = "none";
+  summaryShownThisSession = false;
+  summaryBaselineTurnCount = messages.filter(m => m.role === "user").length;
+  chatInput.focus();
+});
+
 function renderChatLog() {
   chatLog.innerHTML = "";
-  messages.forEach(m => {
+  messages.forEach((m, idx) => {
     if (m.role === "user") {
       const row = document.createElement("div");
       row.style.cssText = "display:flex; justify-content:flex-end;";
@@ -1185,6 +1257,18 @@ function renderChatLog() {
       bubble.appendChild(speakBtn);
       wrap.appendChild(bubble);
 
+      // Regenerate is only meaningful for the most recent assistant reply that followed
+      // a user turn — regenerating an older reply would leave later messages referencing
+      // a version of the conversation that no longer exists.
+      const isLastAssistantReply = idx === messages.length - 1 && idx > 0 && messages[idx - 1].role === "user";
+      if (isLastAssistantReply && !loading) {
+        const regenBtn = document.createElement("button");
+        regenBtn.style.cssText = "align-self:flex-start; font-size:11.5px; padding:4px 9px; margin-top:-2px; display:flex; align-items:center; gap:4px; color:var(--text-tertiary);";
+        regenBtn.innerHTML = `<i class="ti ti-refresh" aria-hidden="true" style="font-size:12px;"></i> Opnieuw genereren`;
+        regenBtn.addEventListener("click", () => regenerateLastReply());
+        wrap.appendChild(regenBtn);
+      }
+
       if (m.correction || m.tip || m.encouragement || m.suggestion) {
         const fb = document.createElement("div");
         fb.style.cssText = "width:100%; background:var(--bg-primary); border:0.5px solid var(--border-tertiary); border-radius:var(--radius-md); padding:8px 10px; display:flex; flex-direction:column; gap:6px; font-size:12.5px; color:var(--text-secondary);";
@@ -1203,6 +1287,16 @@ function renderChatLog() {
         wrap.appendChild(fb);
       }
       chatLog.appendChild(wrap);
+
+      // Mirror the latest feedback into a visually-hidden live region so screen readers
+      // announce new coaching feedback without needing to navigate to it manually.
+      if (idx === messages.length - 1) {
+        const live = document.getElementById("feedback-live-region");
+        if (live) {
+          const parts = [m.correction, m.tip, m.encouragement, m.suggestion].filter(Boolean);
+          live.textContent = parts.join(". ");
+        }
+      }
     }
   });
 
@@ -1214,6 +1308,7 @@ function renderChatLog() {
   }
 
   chatLog.scrollTop = chatLog.scrollHeight;
+  persistChatState();
 }
 
 function escapeHtml(str) {
@@ -1225,10 +1320,18 @@ function escapeHtml(str) {
 function updateSendButton() {
   sendBtn.disabled = loading || !chatInput.value.trim();
 }
+function updateCharCounter() {
+  const counter = document.getElementById("char-counter");
+  if (!counter) return;
+  const len = chatInput.value.length;
+  counter.textContent = `${len}/280`;
+  counter.style.color = len >= 260 ? "var(--danger-text)" : "var(--text-tertiary)";
+}
 chatInput.addEventListener("input", () => {
   updateSendButton();
   hideTranscriptAlternatives();
   cancelPendingAutoSend();
+  updateCharCounter();
 });
 chatInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey) {
@@ -1443,15 +1546,19 @@ function renderStreakBadge() {
 
 // ---------- Mini error/improvement summary ----------
 function maybeShowSessionSummary() {
-  const userTurnCount = messages.filter(m => m.role === "user").length;
-  if (summaryShownThisSession || userTurnCount < 4) return;
-  // Show once, after the 4th or 5th completed turn, then leave it visible (won't re-trigger).
-  if (userTurnCount > 5) return;
+  const totalUserTurns = messages.filter(m => m.role === "user").length;
+  const turnsSinceBaseline = totalUserTurns - summaryBaselineTurnCount;
+  if (summaryShownThisSession || turnsSinceBaseline < 4) return;
+  // Show once, after the 4th or 5th completed turn since the last summary/continue, then leave it visible.
+  if (turnsSinceBaseline > 5) return;
   summaryShownThisSession = true;
 
-  const corrections = messages.filter(m => m.role === "assistant" && m.correction).map(m => m.correction);
-  const goodMoments = messages.filter(m => m.role === "assistant" && m.encouragement).map(m => m.encouragement);
-  const tips = messages.filter(m => m.role === "assistant" && m.tip).map(m => m.tip);
+  // Only summarize messages since the baseline, so continuing past one summary doesn't
+  // keep re-showing corrections from turns already reviewed.
+  const messagesSinceBaseline = messages.slice(summaryBaselineMessageIndex());
+  const corrections = messagesSinceBaseline.filter(m => m.role === "assistant" && m.correction).map(m => m.correction);
+  const goodMoments = messagesSinceBaseline.filter(m => m.role === "assistant" && m.encouragement).map(m => m.encouragement);
+  const tips = messagesSinceBaseline.filter(m => m.role === "assistant" && m.tip).map(m => m.tip);
 
   const panel = document.getElementById("session-summary");
   const content = document.getElementById("session-summary-content");
@@ -1483,6 +1590,19 @@ function maybeShowSessionSummary() {
   panel.style.display = "block";
 }
 
+function summaryBaselineMessageIndex() {
+  // Find the message index right after the summaryBaselineTurnCount-th user turn,
+  // so summaries only cover turns since the last time one was shown/continued.
+  let seen = 0;
+  for (let i = 0; i < messages.length; i++) {
+    if (messages[i].role === "user") {
+      seen++;
+      if (seen > summaryBaselineTurnCount) return i;
+    }
+  }
+  return 0;
+}
+
 function updateDepthIndicator() {
   const userTurns = messages.filter(m => m.role === "user").length;
   const fill = document.getElementById("depth-bar-fill");
@@ -1494,6 +1614,28 @@ function updateDepthIndicator() {
   label.textContent = `${userTurns} ${userTurns === 1 ? "beurt" : "beurten"}`;
 }
 
+function regenerateLastReply() {
+  if (loading) return;
+  if (messages.length < 2) return;
+  const last = messages[messages.length - 1];
+  const secondLast = messages[messages.length - 2];
+  if (last.role !== "assistant" || secondLast.role !== "user") return;
+
+  // Pull the user's original text back into the input so it can be edited before
+  // resending, then drop both that user turn and the reply it produced.
+  chatInput.value = secondLast.text;
+  messages = messages.slice(0, -2);
+  hideChatError();
+  hideTranscriptAlternatives();
+  cancelPendingAutoSend();
+  updateSendButton();
+  updateCharCounter();
+  renderChatLog();
+  updateDepthIndicator();
+  chatInput.focus();
+  chatInput.setSelectionRange(chatInput.value.length, chatInput.value.length);
+}
+
 async function sendMessage() {
   const text = chatInput.value.trim();
   if (!text || loading) return;
@@ -1501,6 +1643,7 @@ async function sendMessage() {
   chatInput.value = "";
   recordingBaseText = "";
   updateSendButton();
+  updateCharCounter();
   hideChatError();
   hideTranscriptAlternatives();
 
