@@ -1457,18 +1457,42 @@ function extractJSON(rawText) {
     return JSON.parse(cleaned);
   } catch {}
 
-  // 2. Models sometimes add preamble/postamble text around the JSON object.
-  //    Find the first '{' and the matching last '}' and try that slice.
-  const firstBrace = cleaned.indexOf("{");
-  const lastBrace = cleaned.lastIndexOf("}");
-  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-    const slice = cleaned.slice(firstBrace, lastBrace + 1);
+  // 2. Scan for every top-level {...} block using proper brace-depth counting (not just
+  //    first '{' / last '}', which breaks if the model's commentary itself contains
+  //    braces, or if it shows an example object before the real one). Try each
+  //    candidate block, preferring the first one that both parses AND has the field
+  //    we actually need — some models echo the schema as an example before answering.
+  const candidates = findBalancedJSONBlocks(cleaned);
+  for (const block of candidates) {
+    try {
+      const obj = JSON.parse(block);
+      if (obj && typeof obj.characterReply === "string" && obj.characterReply.trim()) {
+        return obj;
+      }
+    } catch {}
+  }
+  // If nothing had a usable characterReply, fall back to the first block that merely parses.
+  for (const block of candidates) {
+    try {
+      return JSON.parse(block);
+    } catch {}
+  }
+
+  // 3. Trim known chatty preambles/postambles line by line and retry a direct parse.
+  //    Some models answer with a leading sentence like "Here's the response:" with no
+  //    code fence and no extra braces elsewhere, which step 2 won't catch since there's
+  //    only one valid block anyway — but step 1 already failed because of the prefix text.
+  const lines = cleaned.split("\n");
+  const jsonStartIdx = lines.findIndex(l => l.trim().startsWith("{"));
+  const jsonEndIdx = lines.map(l => l.trim().endsWith("}")).lastIndexOf(true);
+  if (jsonStartIdx !== -1 && jsonEndIdx !== -1 && jsonEndIdx >= jsonStartIdx) {
+    const slice = lines.slice(jsonStartIdx, jsonEndIdx + 1).join("\n");
     try {
       return JSON.parse(slice);
     } catch {}
   }
 
-  // 3. Last resort: regex out individual fields directly, in case brace matching
+  // 4. Last resort: regex out individual fields directly, in case brace matching
   //    failed due to unescaped quotes deep inside a field value.
   const field = (name) => {
     const m = cleaned.match(new RegExp(`"${name}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"`, "s"));
@@ -1486,6 +1510,36 @@ function extractJSON(rawText) {
   }
 
   throw new Error("Could not parse a valid response from the model.");
+}
+
+// Finds every substring that looks like a balanced {...} block by tracking brace depth,
+// correctly skipping over braces that appear inside quoted strings (so a field value
+// containing literal { or } doesn't throw off the scan). Returns them ordered by length
+// descending, since the real answer is usually the largest/most complete object when
+// a model echoes a smaller example first.
+function findBalancedJSONBlocks(text) {
+  const blocks = [];
+  let depth = 0, start = -1, inString = false, escapeNext = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (escapeNext) { escapeNext = false; continue; }
+    if (ch === "\\") { escapeNext = true; continue; }
+    if (ch === '"') { inString = !inString; continue; }
+    if (inString) continue;
+
+    if (ch === "{") {
+      if (depth === 0) start = i;
+      depth++;
+    } else if (ch === "}") {
+      depth = Math.max(0, depth - 1);
+      if (depth === 0 && start !== -1) {
+        blocks.push(text.slice(start, i + 1));
+        start = -1;
+      }
+    }
+  }
+  return blocks.sort((a, b) => b.length - a.length);
 }
 
 // ---------- Progress tracking ----------
@@ -1668,37 +1722,50 @@ async function retrySend() {
 // square of the conversation length. Keeping the first few turns (scenario framing,
 // how the conversation opened) plus the most recent turns (what's actually relevant
 // right now) keeps cost flat while preserving the context that matters most.
-function buildTruncatedHistory(allMessages) {
-  let recentMessages = allMessages;
-  if (allMessages.length > 12) {
-    recentMessages = [...allMessages.slice(0, 4), ...allMessages.slice(-8)];
-  }
-  return recentMessages
+function truncateHistory(allMessages, keepStart = 4, keepEnd = 8, threshold = 12) {
+  if (allMessages.length <= threshold) return allMessages;
+  return [...allMessages.slice(0, keepStart), ...allMessages.slice(-keepEnd)];
+}
+
+// Formats a (possibly truncated) message list into the plain-text transcript the model
+// sees. Depends on currentScenario for the character's display name in past turns.
+function buildHistory(messageList) {
+  return messageList
     .map(m => m.role === "user"
       ? `Student: ${m.text}`
       : `Jij (${currentScenario.title} personage): ${m.characterReply}`)
     .join("\n");
 }
 
+// Wraps extractJSON() with the field-level normalization the app actually needs:
+// every coaching field is optional from the model's point of view, but the rest of
+// the app expects them to consistently be either a string or null, never undefined.
+function parseModelResponse(rawText) {
+  const parsed = extractJSON(rawText);
+  if (!parsed.characterReply) {
+    throw new Error("The model's response was missing a reply. Try again.");
+  }
+  return {
+    characterReply: parsed.characterReply,
+    correction: parsed.correction || null,
+    tip: parsed.tip || null,
+    encouragement: parsed.encouragement || null,
+    suggestion: parsed.suggestion || null,
+  };
+}
+
 async function runModelTurn() {
   try {
-    const history = buildTruncatedHistory(messages);
+    const history = buildHistory(truncateHistory(messages));
 
     const { rawText, usage } = await callModel(
       systemPrompt(currentScenario, lightMode),
       `Gesprek tot nu toe:\n${history}\n\nGeef je volgende antwoord als JSON volgens het gespecificeerde formaat.`
     );
 
-    const parsed = extractJSON(rawText);
+    const parsed = parseModelResponse(rawText);
 
-    messages.push({
-      role: "assistant",
-      characterReply: parsed.characterReply,
-      correction: parsed.correction || null,
-      tip: parsed.tip || null,
-      encouragement: parsed.encouragement || null,
-      suggestion: parsed.suggestion || null,
-    });
+    messages.push({ role: "assistant", ...parsed });
     if (autoSpeak) speak(parsed.characterReply);
     lastFailedSend = null;
     recordSessionProgress();
