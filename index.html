@@ -237,7 +237,12 @@
             <p id="chat-subtitle" style="font-size:12px; color:var(--text-secondary); margin:0;"></p>
           </div>
         </div>
-        <div style="display:flex; gap:6px;">
+        <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+          <span id="session-cost-badge" title="Geschatte kosten deze sessie" style="font-size:11px; color:var(--text-tertiary); padding:0 4px; white-space:nowrap;">~$0.000</span>
+          <button id="toggle-light-mode-btn" title="Light mode: kortere, goedkopere antwoorden" style="padding:6px 10px; font-size:12px; display:flex; align-items:center; gap:4px;">
+            <i class="ti ti-bolt" aria-hidden="true" style="font-size:14px;"></i>
+            <span id="light-mode-label">Light</span>
+          </button>
           <button id="toggle-speak-btn" title="Voice replies on" style="padding:6px 10px;">
             <i class="ti ti-volume" aria-hidden="true" style="font-size:14px;"></i>
           </button>
@@ -485,7 +490,7 @@ const SCENARIOS = [
 
 const GROUP_ORDER = ["Social", "Shop & restaurant", "Admin & government", "Office", "Practical situations"];
 
-function systemPrompt(scenario) {
+function systemPrompt(scenario, lightMode = false) {
   return `Je bent een Nederlandse taaldocent en gesprekspartner voor een A2/B1-niveau student die professioneel Nederlands wil leren voor sociale en zakelijke situaties, gesproken oefening.
 
 SCENARIO: ${scenario.title}
@@ -496,9 +501,9 @@ REGELS:
 2. Gebruik EENVOUDIG, NATUURLIJK Nederlands passend bij A2/B1: korte tot middellange zinnen, veelgebruikte woorden. In formele settings (gemeente, sollicitatie) gebruik beleefdheidsvormen (u) en iets formelere taal, maar blijf begrijpelijk.
 3. BELANGRIJK — improviseer vrij: de student kan het gesprek in elke richting sturen, ook onverwachte of grappige wendingen, onderwerpen die niet "standaard" zijn voor dit scenario, of een heel andere afslag dan je zou verwachten. Volg ALTIJD wat de student zegt en ga daar natuurlijk in mee, alsof je personage echt zo zou reageren. Stuur het gesprek NOOIT terug naar een "script" of "verwacht" pad. Een goed scenario-personage is flexibel, net als een echt persoon.
 4. Stel een vervolgvraag of reageer met iets dat het gesprek natuurlijk laat doorgaan, passend bij wat de student net zei.
-5. Houd elke characterReply kort: 1-3 zinnen, want dit wordt voorgelezen.
+5. Houd elke characterReply kort: ${lightMode ? "MAXIMAAL 2 zinnen, kort en bondig" : "1-3 zinnen"}, want dit wordt voorgelezen.
 
-DAARNAAST geef je coaching in het Engels (alleen Engels, voor de feedback velden):
+DAARNAAST geef je coaching in het Engels (alleen Engels, voor de feedback velden)${lightMode ? ", kort en bondig (1 zin per veld, geen uitgebreide uitleg)" : ""}:
 - Corrigeer grammatica- of woordkeuzefouten in wat de student zei, indien aanwezig. Wees soepel met kleine spreektaal-onvolkomenheden die door spraakherkenning kunnen komen, focus op echte taalfouten.
 - Geef 1-2 nuttige woorden of zinnen die de student had kunnen gebruiken of die nu relevant zijn voor dit type situatie (bijv. formeel taalgebruik bij de gemeente, sollicitatie-vocabulaire).
 - Als de student het heel goed deed, zeg dat kort en bemoedigend.
@@ -516,7 +521,7 @@ Antwoord ALTIJD met geldige JSON, niets anders, geen markdown fences:
 correction format: if there's an error, write it like: "You said '[student's phrase]' — natural Dutch is '[correction]'. [Brief reason in English, 1 sentence]." If there's no error, set this to null.
 tip: one short, concrete vocabulary or phrase suggestion in English explaining a Dutch word/phrase relevant to this scenario type.
 encouragement: a short genuine praise line if the student did something well. null if not particularly applicable.
-suggestion: a short, natural Dutch sentence or two the student could say next, in quotes, followed by a brief English gloss in parentheses. Base it on whatever direction the conversation has actually taken — never on a generic or "expected" version of the scenario. Example: "'Ja, dat lijkt me een goed idee' (Yes, that seems like a good idea to me)".`;
+suggestion: a short, natural Dutch sentence or two the student could say next, in quotes, followed by a brief English gloss in parentheses. Base it on whatever direction the conversation has actually taken — never on a generic or "expected" version of the scenario. Example: "'Ja, dat lijkt me een goed idee' (Yes, that seems like a good idea to me)".${lightMode ? " Keep this field to one short sentence in light mode." : ""}`;
 }
 
 function getDutchVoice(voices) {
@@ -572,6 +577,34 @@ const PROVIDERS = {
   },
 };
 
+// Approximate public pricing in $ per million tokens (input/output), used only to show
+// a rough running estimate in the UI. Not exact billing — actual provider invoices are
+// the source of truth. Unlisted models fall back to a conservative default so the badge
+// never silently shows $0 for a model that actually costs something.
+const MODEL_PRICING = {
+  "google/gemini-2.5-flash": { in: 0.15, out: 0.60 },
+  "deepseek/deepseek-chat": { in: 0.14, out: 0.28 },
+  "anthropic/claude-haiku-4.5": { in: 1, out: 5 },
+  "meta-llama/llama-4-maverick": { in: 0.20, out: 0.60 },
+  "qwen/qwen3-max": { in: 0.40, out: 1.20 },
+  "mistralai/mistral-medium-3.1": { in: 0.40, out: 2 },
+  "claude-haiku-4-5-20251001": { in: 1, out: 5 },
+  "claude-sonnet-4-6": { in: 3, out: 15 },
+  "gemini-2.5-flash": { in: 0.15, out: 0.60 },
+  "gemini-2.5-pro": { in: 1.25, out: 5 },
+};
+const DEFAULT_PRICING = { in: 1, out: 5 };
+
+let sessionCostUSD = 0;
+
+function recordUsage(usage) {
+  const pricing = MODEL_PRICING[modelId] || DEFAULT_PRICING;
+  const cost = (usage.inputTokens / 1e6) * pricing.in + (usage.outputTokens / 1e6) * pricing.out;
+  sessionCostUSD += cost;
+  const badge = document.getElementById("session-cost-badge");
+  if (badge) badge.textContent = `~$${sessionCostUSD.toFixed(3)}`;
+}
+
 // ---------- State ----------
 let savedConfig = null;
 try {
@@ -586,6 +619,7 @@ let currentScenario = null;
 let messages = [];
 let loading = false;
 let autoSpeak = true;
+let lightMode = localStorage.getItem("dutch_practice_light_mode") === "1";
 let recognizing = false;
 let recordingBaseText = "";
 let voicesCache = [];
@@ -1068,6 +1102,10 @@ function startScenario(s) {
   updateSendButton();
   document.getElementById("session-summary").style.display = "none";
   summaryShownThisSession = false;
+  sessionCostUSD = 0;
+  const costBadge = document.getElementById("session-cost-badge");
+  if (costBadge) costBadge.textContent = "~$0.000";
+  applyLightModeButtonState();
   renderChatLog();
   updateDepthIndicator();
   setTimeout(() => speak(s.opener), 300);
@@ -1093,6 +1131,28 @@ document.getElementById("toggle-speak-btn").addEventListener("click", (e) => {
   icon.className = autoSpeak ? "ti ti-volume" : "ti ti-volume-off";
   btn.title = autoSpeak ? "Voice replies on" : "Voice replies off";
 });
+
+function applyLightModeButtonState() {
+  const btn = document.getElementById("toggle-light-mode-btn");
+  if (!btn) return;
+  if (lightMode) {
+    btn.style.background = "var(--text-primary)";
+    btn.style.color = "var(--bg-primary)";
+    btn.style.borderColor = "var(--text-primary)";
+  } else {
+    btn.style.background = "";
+    btn.style.color = "";
+    btn.style.borderColor = "";
+  }
+}
+
+document.getElementById("toggle-light-mode-btn").addEventListener("click", () => {
+  lightMode = !lightMode;
+  try { localStorage.setItem("dutch_practice_light_mode", lightMode ? "1" : "0"); } catch {}
+  applyLightModeButtonState();
+});
+
+applyLightModeButtonState();
 
 function renderChatLog() {
   chatLog.innerHTML = "";
@@ -1190,6 +1250,7 @@ async function callModel(systemText, userText) {
         systemInstruction: { parts: [{ text: systemText }] },
         generationConfig: {
           responseMimeType: "application/json",
+          maxOutputTokens: 500,
           responseSchema: {
             type: "object",
             properties: {
@@ -1213,7 +1274,11 @@ async function callModel(systemText, userText) {
     const data = await response.json();
     const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!text) throw new Error("No response from the conversation partner.");
-    return text;
+    const um = data?.usageMetadata;
+    const usage = um
+      ? { inputTokens: um.promptTokenCount || 0, outputTokens: um.candidatesTokenCount || 0 }
+      : null;
+    return { rawText: text, usage };
   }
 
   // OpenRouter and direct Anthropic both go through OpenAI-style or Anthropic-style chat endpoints.
@@ -1228,7 +1293,7 @@ async function callModel(systemText, userText) {
       },
       body: JSON.stringify({
         model: modelId,
-        max_tokens: 1000,
+        max_tokens: 500,
         system: systemText,
         messages: [{ role: "user", content: userText }],
       }),
@@ -1242,7 +1307,10 @@ async function callModel(systemText, userText) {
     const data = await response.json();
     const textBlock = (data.content || []).find(b => b.type === "text");
     if (!textBlock) throw new Error("No response from the conversation partner.");
-    return textBlock.text;
+    const usage = data?.usage
+      ? { inputTokens: data.usage.input_tokens || 0, outputTokens: data.usage.output_tokens || 0 }
+      : null;
+    return { rawText: textBlock.text, usage };
   }
 
   // OpenRouter (OpenAI-compatible chat completions)
@@ -1259,7 +1327,7 @@ async function callModel(systemText, userText) {
         { role: "user", content: userText },
       ],
       response_format: { type: "json_object" },
-      max_tokens: 1000,
+      max_tokens: 500,
     }),
   });
   if (!response.ok) {
@@ -1271,7 +1339,10 @@ async function callModel(systemText, userText) {
   const data = await response.json();
   const content = data?.choices?.[0]?.message?.content;
   if (!content) throw new Error("No response from the conversation partner.");
-  return content;
+  const usage = data?.usage
+    ? { inputTokens: data.usage.prompt_tokens || 0, outputTokens: data.usage.completion_tokens || 0 }
+    : null;
+  return { rawText: content, usage };
 }
 
 function extractJSON(rawText) {
@@ -1447,16 +1518,29 @@ async function retrySend() {
   await runModelTurn();
 }
 
+// Bounds the conversation history sent on every turn. Without this, a long session
+// resends the entire transcript every single message, so cost grows roughly with the
+// square of the conversation length. Keeping the first few turns (scenario framing,
+// how the conversation opened) plus the most recent turns (what's actually relevant
+// right now) keeps cost flat while preserving the context that matters most.
+function buildTruncatedHistory(allMessages) {
+  let recentMessages = allMessages;
+  if (allMessages.length > 12) {
+    recentMessages = [...allMessages.slice(0, 4), ...allMessages.slice(-8)];
+  }
+  return recentMessages
+    .map(m => m.role === "user"
+      ? `Student: ${m.text}`
+      : `Jij (${currentScenario.title} personage): ${m.characterReply}`)
+    .join("\n");
+}
+
 async function runModelTurn() {
   try {
-    const history = messages
-      .map(m => m.role === "user"
-        ? `Student: ${m.text}`
-        : `Jij (${currentScenario.title} personage): ${m.characterReply}`)
-      .join("\n");
+    const history = buildTruncatedHistory(messages);
 
-    const rawText = await callModel(
-      systemPrompt(currentScenario),
+    const { rawText, usage } = await callModel(
+      systemPrompt(currentScenario, lightMode),
       `Gesprek tot nu toe:\n${history}\n\nGeef je volgende antwoord als JSON volgens het gespecificeerde formaat.`
     );
 
@@ -1474,6 +1558,7 @@ async function runModelTurn() {
     lastFailedSend = null;
     recordSessionProgress();
     maybeShowSessionSummary();
+    if (usage) recordUsage(usage);
   } catch (e) {
     lastFailedSend = true;
     showChatError(
