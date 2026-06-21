@@ -247,6 +247,9 @@
           <button id="toggle-speak-btn" title="Voice replies on" style="padding:6px 10px;">
             <i class="ti ti-volume" aria-hidden="true" style="font-size:14px;"></i>
           </button>
+          <button id="export-chat-btn" title="Gesprek exporteren als tekst" style="padding:6px 10px;">
+            <i class="ti ti-download" aria-hidden="true" style="font-size:14px;"></i>
+          </button>
           <button id="back-to-menu-btn" style="padding:6px 12px;">
             <i class="ti ti-arrow-left" aria-hidden="true" style="font-size:14px; vertical-align:-2px; margin-right:4px;"></i>
             Scenario's
@@ -1316,6 +1319,57 @@ function escapeHtml(str) {
   div.textContent = str;
   return div.innerHTML;
 }
+
+// Builds a clean, human-readable plain-text transcript of the current conversation —
+// no HTML, no markup, just the dialogue and the coaching notes in reading order.
+function buildExportText() {
+  const lines = [];
+  const now = new Date();
+  const dateStr = now.toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric" });
+  const timeStr = now.toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit" });
+
+  lines.push(`Spreekpraktijk — ${currentScenario ? currentScenario.title : "Gesprek"}`);
+  if (currentScenario) lines.push(currentScenario.subtitle);
+  lines.push(`${dateStr}, ${timeStr}`);
+  lines.push("".padEnd(40, "─"));
+  lines.push("");
+
+  messages.forEach(m => {
+    if (m.role === "user") {
+      lines.push(`Jij: ${m.text}`);
+    } else {
+      lines.push(`${currentScenario ? currentScenario.title : "Gesprekspartner"}: ${m.characterReply}`);
+      if (m.correction) lines.push(`  ✎ Correctie: ${m.correction}`);
+      if (m.tip) lines.push(`  💡 Tip: ${m.tip}`);
+      if (m.encouragement) lines.push(`  ✓ ${m.encouragement}`);
+      if (m.suggestion) lines.push(`  → Voorstel: ${m.suggestion}`);
+    }
+    lines.push("");
+  });
+
+  return lines.join("\n").trim() + "\n";
+}
+
+function exportChatAsText() {
+  if (!currentScenario || messages.length === 0) return;
+  const text = buildExportText();
+  const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+
+  const dateSlug = new Date().toISOString().slice(0, 10);
+  const scenarioSlug = currentScenario.id || "gesprek";
+  const filename = `spreekpraktijk-${scenarioSlug}-${dateSlug}.txt`;
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+document.getElementById("export-chat-btn").addEventListener("click", exportChatAsText);
 
 function updateSendButton() {
   sendBtn.disabled = loading || !chatInput.value.trim();
