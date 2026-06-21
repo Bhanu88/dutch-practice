@@ -501,7 +501,7 @@ REGELS:
 2. Gebruik EENVOUDIG, NATUURLIJK Nederlands passend bij A2/B1: korte tot middellange zinnen, veelgebruikte woorden. In formele settings (gemeente, sollicitatie) gebruik beleefdheidsvormen (u) en iets formelere taal, maar blijf begrijpelijk.
 3. BELANGRIJK — improviseer vrij: de student kan het gesprek in elke richting sturen, ook onverwachte of grappige wendingen, onderwerpen die niet "standaard" zijn voor dit scenario, of een heel andere afslag dan je zou verwachten. Volg ALTIJD wat de student zegt en ga daar natuurlijk in mee, alsof je personage echt zo zou reageren. Stuur het gesprek NOOIT terug naar een "script" of "verwacht" pad. Een goed scenario-personage is flexibel, net als een echt persoon.
 4. Stel een vervolgvraag of reageer met iets dat het gesprek natuurlijk laat doorgaan, passend bij wat de student net zei.
-5. Houd elke characterReply kort: ${lightMode ? "MAXIMAAL 2 zinnen, kort en bondig" : "1-3 zinnen"}, want dit wordt voorgelezen.
+5. Houd elke characterReply kort: ${lightMode ? "MAXIMAAL 2 zinnen (ongeveer 60 woorden), kort en bondig" : "1-3 zinnen"}, want dit wordt voorgelezen.
 
 DAARNAAST geef je coaching in het Engels (alleen Engels, voor de feedback velden)${lightMode ? ", kort en bondig (1 zin per veld, geen uitgebreide uitleg)" : ""}:
 - Corrigeer grammatica- of woordkeuzefouten in wat de student zei, indien aanwezig. Wees soepel met kleine spreektaal-onvolkomenheden die door spraakherkenning kunnen komen, focus op echte taalfouten.
@@ -521,7 +521,9 @@ Antwoord ALTIJD met geldige JSON, niets anders, geen markdown fences:
 correction format: if there's an error, write it like: "You said '[student's phrase]' — natural Dutch is '[correction]'. [Brief reason in English, 1 sentence]." If there's no error, set this to null.
 tip: one short, concrete vocabulary or phrase suggestion in English explaining a Dutch word/phrase relevant to this scenario type.
 encouragement: a short genuine praise line if the student did something well. null if not particularly applicable.
-suggestion: a short, natural Dutch sentence or two the student could say next, in quotes, followed by a brief English gloss in parentheses. Base it on whatever direction the conversation has actually taken — never on a generic or "expected" version of the scenario. Example: "'Ja, dat lijkt me een goed idee' (Yes, that seems like a good idea to me)".${lightMode ? " Keep this field to one short sentence in light mode." : ""}`;
+suggestion: a short, natural Dutch sentence or two the student could say next, in quotes, followed by a brief English gloss in parentheses. Base it on whatever direction the conversation has actually taken — never on a generic or "expected" version of the scenario. Example: "'Ja, dat lijkt me een goed idee' (Yes, that seems like a good idea to me)".${lightMode ? " Keep this field to one short sentence in light mode." : ""}
+
+Je moet ALTIJD voldoen aan het JSON schema hierboven. Antwoord met NIETS anders dan dit JSON-object: geen inleidende tekst, geen uitleg, geen markdown-codeblokken, geen tekst na de sluitende accolade.`;
 }
 
 function getDutchVoice(voices) {
