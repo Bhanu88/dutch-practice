@@ -4,40 +4,43 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Spreekpraktijk — Nederlands oefenen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.44.0/dist/tabler-icons.min.css">
 <style>
   :root {
     --bg-primary: #ffffff;
-    --bg-secondary: #f7f6f3;
-    --bg-tertiary: #efeee9;
-    --text-primary: #1a1a18;
-    --text-secondary: #6b6a64;
-    --text-tertiary: #9b9a93;
-    --border-tertiary: rgba(0,0,0,0.1);
-    --border-secondary: rgba(0,0,0,0.2);
-    --info-bg: #e6f1fb;
-    --info-text: #0c447c;
+    --bg-secondary: #f6f7f8;
+    --bg-tertiary: #f6f7f8;
+    --text-primary: #121417;
+    --text-secondary: #5c636b;
+    --text-tertiary: #7d848b;
+    --border-tertiary: #e3e6e9;
+    --border-secondary: #cfd4d9;
+    --info-bg: #e9edfb;
+    --info-text: #1f3a9e;
     --warning-text: #854f0b;
     --success-text: #27500a;
     --danger-bg: #fcebeb;
     --danger-text: #791f1f;
     --radius-md: 8px;
     --radius-lg: 12px;
-    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    --font-serif: Georgia, "Times New Roman", serif;
+    --font-sans: "Instrument Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-serif: "Newsreader", Georgia, "Times New Roman", serif;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg-primary: #1c1c1a;
-      --bg-secondary: #242422;
-      --bg-tertiary: #2c2c29;
-      --text-primary: #f0efe9;
-      --text-secondary: #b4b2a9;
-      --text-tertiary: #888780;
-      --border-tertiary: rgba(255,255,255,0.12);
-      --border-secondary: rgba(255,255,255,0.22);
-      --info-bg: #0c447c;
-      --info-text: #b5d4f4;
+      --bg-primary: #181b1f;
+      --bg-secondary: #111316;
+      --bg-tertiary: #111316;
+      --text-primary: #eceef0;
+      --text-secondary: #a4abb2;
+      --text-tertiary: #7f868d;
+      --border-tertiary: #262a2f;
+      --border-secondary: #383d43;
+      --info-bg: #1c2547;
+      --info-text: #aebcff;
       --warning-text: #fac775;
       --success-text: #c0dd97;
       --danger-bg: #501313;
@@ -75,6 +78,17 @@
     color: var(--text-primary);
   }
   button:hover { background: var(--bg-secondary); }
+  #record-btn { background: var(--info-text); color: var(--bg-primary); border-color: transparent; }
+  #record-btn:hover { background: var(--info-text); opacity: 0.92; }
+  .row {
+    display: flex; align-items: center; gap: 14px; width: 100%; text-align: left;
+    padding: 14px 4px; border: 0; border-bottom: 1px solid var(--border-tertiary);
+    border-radius: 0; background: transparent;
+  }
+  .row:hover { background: transparent; }
+  .row:hover .row-title { color: var(--info-text); }
+  .row:active { transform: none; }
+  .row:focus-visible { outline-offset: -2px; border-radius: var(--radius-md); }
   button:active { transform: scale(0.98); }
   button:disabled { opacity: 0.5; cursor: default; }
   #send-btn {
@@ -119,6 +133,19 @@
   select:focus { outline: 2px solid var(--info-text); outline-offset: 1px; }
   input:focus { outline: 2px solid var(--info-text); outline-offset: 1px; }
   button { min-height: 38px; }
+  button:focus-visible { outline: 2px solid var(--info-text); outline-offset: 2px; }
+  .chip {
+    display: flex; align-items: center; gap: 5px;
+    padding: 5px 11px; min-height: 32px; font-size: 12.5px;
+    border-radius: 999px; background: transparent;
+  }
+  .chip[aria-pressed="true"] {
+    background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary);
+  }
+  .chip[aria-pressed="true"]:hover { background: var(--text-primary); opacity: 0.9; }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
   .sr-only {
     position: absolute; width: 1px; height: 1px;
     overflow: hidden; clip: rect(0,0,0,0);
@@ -203,19 +230,18 @@
 
       <div style="display:flex; align-items:center; justify-content:space-between; padding-bottom:1.25rem; margin-bottom:1.5rem; border-bottom:0.5px solid var(--border-tertiary);">
         <div style="display:flex; align-items:center; gap:10px;">
-          <div style="width:32px; height:32px; border-radius:var(--radius-md); background:var(--text-primary); color:var(--bg-primary); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:500; font-family:var(--font-serif); flex-shrink:0;">NL</div>
           <div>
-            <p style="font-weight:500; font-size:15px; margin:0;">Spreekpraktijk</p>
+            <p style="font-family:var(--font-serif); font-weight:500; font-size:24px; letter-spacing:-0.01em; margin:0;">Spreekpraktijk</p>
             <p style="font-size:12px; color:var(--text-secondary); margin:0;">Gesproken Nederlands voor professionele situaties</p>
           </div>
         </div>
         <div style="display:flex; align-items:center; gap:8px;">
-          <div id="streak-badge" style="display:flex; align-items:center; gap:5px; font-size:11px; font-weight:500; letter-spacing:0.02em; color:var(--text-secondary); border:0.5px solid var(--border-secondary); border-radius:var(--radius-md); padding:4px 10px; flex-shrink:0;">
+          <div id="streak-badge" style="display:flex; align-items:center; gap:5px; font-size:12px; color:var(--text-secondary); padding:4px 2px; flex-shrink:0;">
             <i class="ti ti-flame" aria-hidden="true" style="font-size:13px;"></i>
             <span id="streak-text">0 sessies deze week</span>
           </div>
-          <div style="font-size:11px; font-weight:500; letter-spacing:0.03em; color:var(--text-secondary); border:0.5px solid var(--border-secondary); border-radius:var(--radius-md); padding:4px 10px; flex-shrink:0;">
-            NIVEAU A2–B1
+          <div style="font-size:12px; color:var(--text-secondary); padding:4px 2px; flex-shrink:0;">
+            Niveau A2–B1
           </div>
           <button id="reset-key-btn" title="API key wijzigen" style="padding: 6px 8px;">
             <i class="ti ti-settings" aria-hidden="true" style="font-size:14px;"></i>
@@ -240,14 +266,10 @@
         </div>
         <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
           <span id="session-cost-badge" title="Geschatte kosten deze sessie" style="font-size:11px; color:var(--text-tertiary); padding:0 4px; white-space:nowrap;">~$0.000</span>
-          <button id="toggle-light-mode-btn" title="Light mode: kortere, goedkopere antwoorden" style="padding:6px 10px; font-size:12px; display:flex; align-items:center; gap:4px;">
-            <i class="ti ti-bolt" aria-hidden="true" style="font-size:14px;"></i>
-            <span id="light-mode-label">Light</span>
-          </button>
-          <button id="toggle-speak-btn" title="Voice replies on" style="padding:6px 10px;">
+          <button id="toggle-speak-btn" title="Voice replies on" aria-label="Antwoorden voorlezen" aria-pressed="true" style="padding:6px 10px;">
             <i class="ti ti-volume" aria-hidden="true" style="font-size:14px;"></i>
           </button>
-          <button id="export-chat-btn" title="Gesprek exporteren als tekst" style="padding:6px 10px;">
+          <button id="export-chat-btn" title="Gesprek exporteren als tekst" aria-label="Gesprek exporteren als tekst" style="padding:6px 10px;">
             <i class="ti ti-download" aria-hidden="true" style="font-size:14px;"></i>
           </button>
           <button id="back-to-menu-btn" style="padding:6px 12px;">
@@ -257,6 +279,19 @@
         </div>
       </div>
 
+      <div role="group" aria-label="Hulp" style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:10px;">
+        <span style="font-size:12px; color:var(--text-secondary); margin-right:2px;">Hulp</span>
+        <button id="toggle-hint-q-btn" class="chip" aria-pressed="false" title="Toon de Engelse betekenis van elke vraag">
+          <i class="ti ti-language" aria-hidden="true" style="font-size:14px;"></i>Betekenis van de vraag
+        </button>
+        <button id="toggle-hint-a-btn" class="chip" aria-pressed="false" title="Toon een passend antwoord op elke vraag">
+          <i class="ti ti-bulb" aria-hidden="true" style="font-size:14px;"></i>Voorbeeldantwoord
+        </button>
+        <button id="toggle-light-mode-btn" class="chip" aria-pressed="false" title="Kortere, goedkopere antwoorden">
+          <i class="ti ti-bolt" aria-hidden="true" style="font-size:14px;"></i>Kort
+        </button>
+      </div>
+
       <div style="display:flex; align-items:center; gap:6px; margin-bottom:10px;">
         <div id="depth-bar-track" style="flex:1; height:4px; background:var(--bg-secondary); border-radius:2px; overflow:hidden;">
           <div id="depth-bar-fill" style="height:100%; width:0%; background:var(--info-text); transition:width 300ms ease;"></div>
@@ -264,11 +299,11 @@
         <span id="depth-label" style="font-size:11px; color:var(--text-tertiary); flex-shrink:0;">0 beurten</span>
       </div>
 
-      <div id="chat-log" style="background:var(--bg-secondary); border-radius:var(--radius-lg); padding:1rem; height:min(380px, 50vh); min-height:220px; overflow-y:auto; display:flex; flex-direction:column; gap:14px; margin-bottom:1rem;"></div>
+      <div id="chat-log" style="background:var(--bg-primary); border:1px solid var(--border-tertiary); border-radius:var(--radius-lg); padding:1.25rem; height:min(420px, 55vh); min-height:220px; overflow-y:auto; display:flex; flex-direction:column; gap:14px; margin-bottom:1rem;"></div>
       <div id="feedback-live-region" class="sr-only" aria-live="polite" role="status"></div>
 
       <div id="session-summary" style="display:none; margin-bottom:1rem; padding:14px; background:var(--bg-secondary); border:0.5px solid var(--border-tertiary); border-radius:var(--radius-lg);">
-        <p style="font-size:12px; font-weight:500; margin:0 0 8px; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.04em;">
+        <p style="font-size:13px; font-weight:500; margin:0 0 8px; color:var(--text-primary);">
           Korte samenvatting
         </p>
         <div id="session-summary-content" style="font-size:13px; line-height:1.6; margin-bottom:10px;"></div>
@@ -289,7 +324,7 @@
         Voice input isn't available in this browser — type your reply instead.
       </p>
 
-      <button id="record-btn" style="width:100%; display:flex; align-items:center; justify-content:center; gap:8px; height:44px; margin-bottom:6px; font-size:14px; font-weight:500; background:var(--bg-secondary); position:relative; overflow:hidden;">
+      <button id="record-btn" style="width:100%; display:flex; align-items:center; justify-content:center; gap:8px; height:44px; margin-bottom:6px; font-size:14px; font-weight:500; position:relative; overflow:hidden;">
         <div id="volume-meter-fill" style="position:absolute; left:0; top:0; bottom:0; width:0%; background:var(--danger-bg); opacity:0.55; transition:width 70ms linear; z-index:0;"></div>
         <i class="ti ti-microphone" aria-hidden="true" style="font-size:17px; z-index:1; position:relative;"></i>
         <span id="record-btn-label" style="z-index:1; position:relative;">Spreek je antwoord in</span>
@@ -332,6 +367,30 @@
 
 <script>
 const SCENARIOS = [
+  {
+    id: "weekend", icon: "ti-calendar-event", title: "Mijn weekend",
+    subtitle: "Tell what you did last weekend", group: "Vertellen", long: true,
+    role: "Je bent Sanne, een vriendelijke collega die op maandagochtend bij de koffie graag luistert naar het weekendverhaal van de gebruiker.",
+    opener: "Goedemorgen! Vertel eens, wat heb je dit weekend gedaan? Neem rustig de tijd.",
+  },
+  {
+    id: "vakantie", icon: "ti-beach", title: "Mijn vakantie",
+    subtitle: "Tell how you spent your holiday", group: "Vertellen", long: true,
+    role: "Je bent Tom, een nieuwsgierige vriend die net hoort dat de gebruiker terug is van vakantie en graag het hele verhaal wil horen.",
+    opener: "Hé, welkom terug! Hoe was je vakantie? Ik wil alles horen!",
+  },
+  {
+    id: "reis", icon: "ti-plane", title: "Mijn reis",
+    subtitle: "Tell about a trip you took", group: "Vertellen", long: true,
+    role: "Je bent Lisa, een collega die zelf graag reist en vraagt naar een recente reis of uitstap van de gebruiker.",
+    opener: "Ik hoorde dat je onlangs op reis was. Hoe was je reis? Waar ben je geweest?",
+  },
+  {
+    id: "overmij", icon: "ti-user", title: "Vertel over jezelf",
+    subtitle: "Introduce yourself: background, work, interests", group: "Vertellen", long: true,
+    role: "Je bent Mark, een nieuwe collega die de gebruiker voor het eerst ontmoet en graag wil weten wie de gebruiker is: achtergrond, werk en interesses.",
+    opener: "Leuk om kennis te maken! Ik ben Mark. Vertel eens wat over jezelf: wie ben je en wat doe je?",
+  },
   {
     id: "borrel", icon: "ti-glass", title: "Borrel",
     subtitle: "Drinks with colleagues after work", group: "Social",
@@ -502,9 +561,9 @@ const SCENARIOS = [
   },
 ];
 
-const GROUP_ORDER = ["Social", "Shop & restaurant", "Admin & government", "Office", "Practical situations"];
+const GROUP_ORDER = ["Vertellen", "Social", "Shop & restaurant", "Admin & government", "Office", "Practical situations"];
 
-function systemPrompt(scenario, lightMode = false) {
+function systemPrompt(scenario, lightMode = false, hintQ = false, hintA = false) {
   return `Je bent een Nederlandse taaldocent en gesprekspartner voor een A2/B1-niveau student die professioneel Nederlands wil leren voor sociale en zakelijke situaties, gesproken oefening.
 
 SCENARIO: ${scenario.title}
@@ -514,11 +573,12 @@ REGELS:
 1. Blijf STRIKT in karakter als gesprekspartner. Spreek ALLEEN Nederlands in je characterReply.
 2. Gebruik EENVOUDIG, NATUURLIJK Nederlands passend bij A2/B1: korte tot middellange zinnen, veelgebruikte woorden. In formele settings (gemeente, sollicitatie) gebruik beleefdheidsvormen (u) en iets formelere taal, maar blijf begrijpelijk.
 3. BELANGRIJK — improviseer vrij: de student kan het gesprek in elke richting sturen, ook onverwachte of grappige wendingen, onderwerpen die niet "standaard" zijn voor dit scenario, of een heel andere afslag dan je zou verwachten. Volg ALTIJD wat de student zegt en ga daar natuurlijk in mee, alsof je personage echt zo zou reageren. Stuur het gesprek NOOIT terug naar een "script" of "verwacht" pad. Een goed scenario-personage is flexibel, net als een echt persoon.
-4. Stel een vervolgvraag of reageer met iets dat het gesprek natuurlijk laat doorgaan, passend bij wat de student net zei.
-5. Houd elke characterReply kort: ${lightMode ? "MAXIMAAL 2 zinnen (ongeveer 60 woorden), kort en bondig" : "1-3 zinnen"}, want dit wordt voorgelezen.
+4. Voer een ECHT gesprek, geen interview. Reageer eerst op wat de student zei en deel iets van jezelf (een mening, ervaring of detail passend bij je rol). Stel NIET elke beurt een vraag: wissel af tussen een vraag, een eigen opmerking of verhaal, en reageren op de vraag van de student. Als de student je iets vraagt, beantwoord dat concreet en natuurlijk, alsof je personage het echt meemaakt.
+5. Houd elke characterReply kort: ${lightMode ? "MAXIMAAL 2 zinnen (ongeveer 60 woorden), kort en bondig" : "1-3 zinnen"}, want dit wordt voorgelezen.${scenario.long ? `
+6. VERTELMODUS: de student geeft in dit scenario langere antwoorden en vertelt een verhaal. Laat de student praten: reageer kort en oprecht op een concreet detail uit het verhaal, en stel hooguit EEN vervolgvraag die om meer detail vraagt (wie, waar, hoe voelde dat). Onderbreek niet met je eigen verhaal.` : ""}
 
 DAARNAAST geef je coaching in het Engels (alleen Engels, voor de feedback velden)${lightMode ? ", kort en bondig (1 zin per veld, geen uitgebreide uitleg)" : ""}:
-- Corrigeer grammatica- of woordkeuzefouten in wat de student zei, indien aanwezig. Wees soepel met kleine spreektaal-onvolkomenheden die door spraakherkenning kunnen komen, focus op echte taalfouten.
+- Corrigeer grammatica- of woordkeuzefouten in wat de student zei, indien aanwezig.${scenario.long ? " Bij een lang antwoord: kies maximaal de 3 belangrijkste fouten en zet ze achter elkaar in hetzelfde correction-veld, gescheiden door een puntkomma." : ""} Wees soepel met kleine spreektaal-onvolkomenheden die door spraakherkenning kunnen komen, focus op echte taalfouten.
 - Geef 1-2 nuttige woorden of zinnen die de student had kunnen gebruiken of die nu relevant zijn voor dit type situatie (bijv. formeel taalgebruik bij de gemeente, sollicitatie-vocabulaire).
 - Als de student het heel goed deed, zeg dat kort en bemoedigend.
 - Geef ALTIJD een concreet voorstel voor wat de student hierna in het Nederlands zou kunnen zeggen, passend bij waar het gesprek nu staat (ook als de student is afgeweken van het "standaard" pad — baseer je suggestie op de ACTUELE richting van het gesprek, niet op wat je had verwacht).
@@ -529,13 +589,13 @@ Antwoord ALTIJD met geldige JSON, niets anders, geen markdown fences:
   "correction": "..." or null if no errors,
   "tip": "...",
   "encouragement": "..." or null,
-  "suggestion": "..."
+  "suggestion": "..."${hintQ ? ',\n  "questionMeaning": "..."' : ""}${hintA ? ',\n  "answerHint": "..."' : ""}
 }
-
+${hintQ ? "\nquestionMeaning: the English meaning of your characterReply, one short sentence.\n" : ""}${hintA ? "\nanswerHint: a natural Dutch reply the student could give to YOUR characterReply that answers it and then asks the character a question back, followed by a brief English gloss in parentheses.\n" : ""}
 correction format: if there's an error, write it like: "You said '[student's phrase]' — natural Dutch is '[correction]'. [Brief reason in English, 1 sentence]." If there's no error, set this to null.
 tip: one short, concrete vocabulary or phrase suggestion in English explaining a Dutch word/phrase relevant to this scenario type.
 encouragement: a short genuine praise line if the student did something well. null if not particularly applicable.
-suggestion: a short, natural Dutch sentence or two the student could say next, in quotes, followed by a brief English gloss in parentheses. Base it on whatever direction the conversation has actually taken — never on a generic or "expected" version of the scenario. Example: "'Ja, dat lijkt me een goed idee' (Yes, that seems like a good idea to me)".${lightMode ? " Keep this field to one short sentence in light mode." : ""}
+suggestion: a short, natural Dutch reply the student could say next, in quotes, followed by a brief English gloss in parentheses. Where it fits, let it answer AND ask the character a question back (e.g. "Goed, bedankt! En jij?"), so the student practises asking questions too, not only answering. ${scenario.long ? "In storytelling mode, make it a sentence that helps the student continue or enrich their story (linking words like 'daarna', 'toen', 'het leukste was'), not a question. " : ""}Base it on whatever direction the conversation has actually taken — never on a generic or "expected" version of the scenario. Example: "'Ja, dat lijkt me een goed idee' (Yes, that seems like a good idea to me)".${lightMode ? " Keep this field to one short sentence in light mode." : ""}
 
 Je moet ALTIJD voldoen aan het JSON schema hierboven. Antwoord met NIETS anders dan dit JSON-object: geen inleidende tekst, geen uitleg, geen markdown-codeblokken, geen tekst na de sluitende accolade.`;
 }
@@ -636,6 +696,9 @@ let messages = [];
 let loading = false;
 let autoSpeak = true;
 let lightMode = localStorage.getItem("dutch_practice_light_mode") === "1";
+let hintQ = localStorage.getItem("dutch_practice_hint_q") === "1";
+let hintA = localStorage.getItem("dutch_practice_hint_a") === "1";
+let hintFetchInFlight = false;
 let recognizing = false;
 let recordingBaseText = "";
 let voicesCache = [];
@@ -747,33 +810,25 @@ function renderMenu() {
   groupsContainer.innerHTML = "";
   GROUP_ORDER.forEach((group, gi) => {
     const groupDiv = document.createElement("div");
-    groupDiv.style.marginBottom = gi === GROUP_ORDER.length - 1 ? "0" : "1.75rem";
+    groupDiv.style.marginBottom = gi === GROUP_ORDER.length - 1 ? "0" : "2rem";
 
-    const labelRow = document.createElement("div");
-    labelRow.style.cssText = "display:flex; align-items:center; gap:10px; margin-bottom:10px;";
     const label = document.createElement("p");
     label.textContent = group;
-    label.style.cssText = "font-size:11px; color:var(--text-tertiary); margin:0; font-weight:500; letter-spacing:0.05em; text-transform:uppercase; white-space:nowrap;";
-    const rule = document.createElement("div");
-    rule.style.cssText = "flex:1; height:0.5px; background:var(--border-tertiary);";
-    labelRow.appendChild(label);
-    labelRow.appendChild(rule);
-    groupDiv.appendChild(labelRow);
+    label.style.cssText = "font-size:13px; color:var(--text-secondary); margin:0 0 2px; font-weight:500;";
+    groupDiv.appendChild(label);
 
     const grid = document.createElement("div");
-    grid.style.cssText = "display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:10px;";
 
     SCENARIOS.filter(s => s.group === group).forEach(s => {
       const btn = document.createElement("button");
-      btn.style.cssText = "text-align:left; display:flex; align-items:flex-start; gap:12px; padding:0.9rem 1rem; border-radius:var(--radius-lg);";
+      btn.className = "row";
       btn.innerHTML = `
-        <div style="width:34px; height:34px; border-radius:var(--radius-md); background:var(--bg-secondary); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-          <i class="ti ${s.icon}" aria-hidden="true" style="font-size:17px; color:var(--text-primary);"></i>
+        <i class="ti ${s.icon}" aria-hidden="true" style="font-size:20px; color:var(--text-secondary); flex-shrink:0;"></i>
+        <div style="flex:1;">
+          <p class="row-title" style="font-weight:500; font-size:15px; margin:0;">${s.title}</p>
+          <p style="font-size:13px; color:var(--text-secondary); margin:2px 0 0; line-height:1.4;">${s.subtitle}</p>
         </div>
-        <div>
-          <p style="font-weight:500; font-size:14px; margin:0;">${s.title}</p>
-          <p style="font-size:12.5px; color:var(--text-secondary); margin:2px 0 0; line-height:1.4;">${s.subtitle}</p>
-        </div>
+        <i class="ti ti-chevron-right" aria-hidden="true" style="font-size:16px; color:var(--text-tertiary);"></i>
       `;
       btn.addEventListener("click", () => startScenario(s));
       grid.appendChild(btn);
@@ -813,7 +868,6 @@ function restoreChatIfAny() {
 
 renderMenu();
 renderStreakBadge();
-restoreChatIfAny();
 
 // iOS Safari (and WebKit-based browsers on iOS) handle concurrent microphone sessions
 // poorly: running a separate getUserMedia stream for the volume meter at the same time
@@ -907,6 +961,42 @@ if (!SR) {
   document.getElementById("record-btn").style.display = "none";
 }
 
+let lastResults = null;
+
+// Runs once when recording ends: joins everything heard (across pauses) into the input.
+// Alternatives are only offered for a single utterance, where picking one is unambiguous.
+function commitRecognizedSpeech() {
+  const results = lastResults;
+  lastResults = null;
+  const interimEl = document.getElementById("interim-transcript");
+  interimEl.style.display = "none";
+  interimEl.textContent = "";
+  if (!results || !results.length) return;
+
+  const chatInput = document.getElementById("chat-input");
+  const base = recordingBaseText;
+  const alternatives = [];
+  for (let i = 0; i < results[0].length; i++) {
+    const t = results[0][i].transcript.trim();
+    if (t && !alternatives.includes(t)) alternatives.push(t);
+  }
+  const heard = results.length > 1
+    ? Array.from(results, res => res[0].transcript.trim()).join(" ").trim()
+    : alternatives[0] || "";
+  chatInput.value = base ? base + " " + heard : heard;
+  recordingBaseText = chatInput.value;
+  updateSendButton();
+  updateCharCounter();
+
+  if (results.length === 1 && alternatives.length > 1) {
+    showTranscriptAlternatives(alternatives, base);
+  } else {
+    hideTranscriptAlternatives();
+    // Storytelling answers are long; leave time to review and add more instead of auto-sending.
+    if (chatInput.value.trim() && !currentScenario?.long) scheduleAutoSend();
+  }
+}
+
 // iOS Safari (and some Android Chrome builds) leave a SpeechRecognition instance in a
 // stale state after one full start/stop cycle — reusing the same object can silently
 // stop producing results on the second attempt. Building a brand new instance for
@@ -914,47 +1004,17 @@ if (!SR) {
 function createRecognitionInstance() {
   const r = new SR();
   r.lang = "nl-NL";
-  r.continuous = false;
+  r.continuous = true; // keep listening through pauses; the student ends it with the button
   r.interimResults = true;
   r.maxAlternatives = 4;
 
   r.onresult = (event) => {
     gotResultThisSession = true;
-    const result = event.results[0];
-    const chatInput = document.getElementById("chat-input");
+    lastResults = event.results;
     const interimEl = document.getElementById("interim-transcript");
-    const base = recordingBaseText;
-
-    if (!result.isFinal) {
-      // Live preview while still speaking, shown bold/colored above the input.
-      const live = result[0].transcript;
-      interimEl.textContent = base ? base + " " + live : live;
-      interimEl.style.display = "block";
-      return;
-    }
-
-    interimEl.style.display = "none";
-    interimEl.textContent = "";
-
-    // Final result: fill the box with the top guess, and offer alternatives if they differ meaningfully.
-    const alternatives = [];
-    for (let i = 0; i < result.length; i++) {
-      const t = result[i].transcript.trim();
-      if (t && !alternatives.includes(t)) alternatives.push(t);
-    }
-    const finalText = alternatives[0] || "";
-    chatInput.value = base ? base + " " + finalText : finalText;
-    recordingBaseText = chatInput.value;
-    updateSendButton();
-    updateCharCounter();
-
-    if (alternatives.length > 1) {
-      showTranscriptAlternatives(alternatives, base);
-      // Don't auto-send while there's ambiguity to resolve — let the student pick first.
-    } else {
-      hideTranscriptAlternatives();
-      if (chatInput.value.trim()) scheduleAutoSend();
-    }
+    const live = Array.from(event.results, res => res[0].transcript.trim()).join(" ").trim();
+    interimEl.textContent = recordingBaseText ? recordingBaseText + " " + live : live;
+    interimEl.style.display = "block";
   };
   r.onnomatch = () => {
     gotResultThisSession = true; // treat as "handled" so onend doesn't also complain
@@ -977,6 +1037,7 @@ function createRecognitionInstance() {
   r.onend = () => {
     setRecognizing(false);
     stopVolumeMeter();
+    commitRecognizedSpeech();
     if (!gotResultThisSession) {
       // Recording started and ended with no result, no nomatch, and no error event at all —
       // seen on some Android Chrome builds and on repeat attempts in iOS Safari.
@@ -1046,12 +1107,12 @@ function setRecognizing(val) {
     btn.style.borderColor = "var(--danger-text)";
     btn.style.color = "var(--danger-text)";
     icon.className = "ti ti-player-stop-filled";
-    label.textContent = "Stop opname";
+    label.textContent = "Klaar? Tik om te stoppen";
     chatInput.placeholder = "Aan het luisteren...";
   } else {
-    btn.style.background = "var(--bg-secondary)";
+    btn.style.background = "";
     btn.style.borderColor = "";
-    btn.style.color = "var(--text-primary)";
+    btn.style.color = "";
     icon.className = "ti ti-microphone";
     label.textContent = "Spreek je antwoord in";
     chatInput.placeholder = "Of typ je antwoord hier...";
@@ -1087,7 +1148,7 @@ function hideTranscriptAlternatives() {
 // ---------- Auto-send after speech recognition ----------
 let autoSendTimeout = null;
 let autoSendInterval = null;
-const AUTO_SEND_DELAY_MS = 1400;
+const AUTO_SEND_DELAY_MS = 5000;
 
 function scheduleAutoSend() {
   cancelPendingAutoSend();
@@ -1148,6 +1209,7 @@ retryBtn.addEventListener("click", () => {
 
 function startScenario(s, restoredMessages = null) {
   currentScenario = s;
+  document.getElementById("chat-input").maxLength = s.long ? 1000 : 280;
   messages = restoredMessages || [{ role: "assistant", characterReply: s.opener, correction: null, tip: null, encouragement: null, suggestion: null }];
 
   document.getElementById("chat-icon").className = `ti ${s.icon}`;
@@ -1175,6 +1237,7 @@ function startScenario(s, restoredMessages = null) {
   renderChatLog();
   updateDepthIndicator();
   if (!restoredMessages) setTimeout(() => speak(s.opener), 300);
+  fillMissingHints();
 
   if (speechSupported && !sessionStorage.getItem("dutch_practice_mic_hint_seen")) {
     document.getElementById("mic-hint").style.display = "block";
@@ -1197,20 +1260,12 @@ document.getElementById("toggle-speak-btn").addEventListener("click", (e) => {
   const icon = btn.querySelector("i");
   icon.className = autoSpeak ? "ti ti-volume" : "ti ti-volume-off";
   btn.title = autoSpeak ? "Voice replies on" : "Voice replies off";
+  btn.setAttribute("aria-pressed", String(autoSpeak));
 });
 
 function applyLightModeButtonState() {
   const btn = document.getElementById("toggle-light-mode-btn");
-  if (!btn) return;
-  if (lightMode) {
-    btn.style.background = "var(--text-primary)";
-    btn.style.color = "var(--bg-primary)";
-    btn.style.borderColor = "var(--text-primary)";
-  } else {
-    btn.style.background = "";
-    btn.style.color = "";
-    btn.style.borderColor = "";
-  }
+  if (btn) btn.setAttribute("aria-pressed", String(lightMode));
 }
 
 document.getElementById("toggle-light-mode-btn").addEventListener("click", () => {
@@ -1220,6 +1275,50 @@ document.getElementById("toggle-light-mode-btn").addEventListener("click", () =>
 });
 
 applyLightModeButtonState();
+
+const hintToggles = [
+  ["toggle-hint-q-btn", "dutch_practice_hint_q", v => hintQ = v, () => hintQ],
+  ["toggle-hint-a-btn", "dutch_practice_hint_a", v => hintA = v, () => hintA],
+];
+for (const [id, key, set, get] of hintToggles) {
+  const btn = document.getElementById(id);
+  btn.setAttribute("aria-pressed", String(get()));
+  btn.addEventListener("click", () => {
+    const on = btn.getAttribute("aria-pressed") !== "true";
+    set(on);
+    btn.setAttribute("aria-pressed", String(on));
+    try { localStorage.setItem(key, on ? "1" : "0"); } catch {}
+    renderChatLog();
+    fillMissingHints();
+  });
+}
+
+// Replies fetched while a hint was off (and the fixed opener) have no hint text yet.
+// When a hint is on, fetch it for the latest assistant reply only, to keep cost down.
+async function fillMissingHints() {
+  const m = messages[messages.length - 1];
+  if (hintFetchInFlight || !m || m.role !== "assistant") return;
+  const needQ = hintQ && !m.questionMeaning;
+  const needA = hintA && !m.answerHint;
+  if (!needQ && !needA) return;
+  hintFetchInFlight = true;
+  try {
+    const { rawText, usage } = await callModel(
+      `Je bent een Nederlandse taaldocent voor een A2/B1-student. Scenario: ${currentScenario.title}. Antwoord ALLEEN met JSON: {"questionMeaning": "<English meaning of the Dutch line, one short sentence>", "answerHint": "<a natural Dutch reply that answers the line and then asks the character a question back, then a brief English gloss in parentheses>"}`,
+      `Nederlandse regel: ${m.characterReply}`,
+      true
+    );
+    const parsed = extractJSON(rawText);
+    m.questionMeaning = m.questionMeaning || parsed.questionMeaning || null;
+    m.answerHint = m.answerHint || parsed.answerHint || null;
+    if (usage) recordUsage(usage);
+  } catch {
+    // Hints are optional; stay silent and let the next toggle or reply retry.
+  } finally {
+    hintFetchInFlight = false;
+    renderChatLog();
+  }
+}
 
 document.getElementById("continue-after-summary-btn").addEventListener("click", () => {
   document.getElementById("session-summary").style.display = "none";
@@ -1235,7 +1334,7 @@ function renderChatLog() {
       const row = document.createElement("div");
       row.style.cssText = "display:flex; justify-content:flex-end;";
       const bubble = document.createElement("div");
-      bubble.style.cssText = "background:var(--text-primary); color:var(--bg-primary); border-radius:var(--radius-md); padding:8px 12px; max-width:75%; font-size:14px; line-height:1.5;";
+      bubble.style.cssText = "background:var(--text-primary); color:var(--bg-primary); border-radius:var(--radius-lg) var(--radius-lg) 4px var(--radius-lg); padding:9px 14px; max-width:75%; font-size:15px; line-height:1.5;";
       bubble.textContent = m.text;
       row.appendChild(bubble);
       chatLog.appendChild(row);
@@ -1244,7 +1343,7 @@ function renderChatLog() {
       wrap.style.cssText = "display:flex; flex-direction:column; gap:6px; align-items:flex-start; max-width:85%;";
 
       const bubble = document.createElement("div");
-      bubble.style.cssText = "display:flex; align-items:flex-start; gap:8px; background:var(--bg-primary); border:0.5px solid var(--border-tertiary); border-radius:var(--radius-md); padding:8px 10px 8px 12px; font-size:14px; line-height:1.5;";
+      bubble.style.cssText = "display:flex; align-items:flex-start; gap:8px; font-family:var(--font-serif); font-size:18px; line-height:1.5;";
       const span = document.createElement("span");
       span.style.flex = "1";
       span.textContent = m.characterReply;
@@ -1256,6 +1355,14 @@ function renderChatLog() {
       bubble.appendChild(span);
       bubble.appendChild(speakBtn);
       wrap.appendChild(bubble);
+
+      for (const [on, text, label] of [[hintQ, m.questionMeaning, "Meaning"], [hintA, m.answerHint, "You could answer"]]) {
+        if (!on || !text) continue;
+        const hint = document.createElement("div");
+        hint.style.cssText = "font-size:12px; color:var(--text-secondary); padding:0 4px;";
+        hint.textContent = `${label}: ${text}`;
+        wrap.appendChild(hint);
+      }
 
       // Regenerate is only meaningful for the most recent assistant reply that followed
       // a user turn — regenerating an older reply would leave later messages referencing
@@ -1271,7 +1378,7 @@ function renderChatLog() {
 
       if (m.correction || m.tip || m.encouragement || m.suggestion) {
         const fb = document.createElement("div");
-        fb.style.cssText = "width:100%; background:var(--bg-primary); border:0.5px solid var(--border-tertiary); border-radius:var(--radius-md); padding:8px 10px; display:flex; flex-direction:column; gap:6px; font-size:12.5px; color:var(--text-secondary);";
+        fb.style.cssText = "width:100%; border-left:2px solid var(--border-secondary); padding:2px 0 2px 12px; display:flex; flex-direction:column; gap:6px; font-size:13px; line-height:1.5; color:var(--text-secondary);";
         if (m.correction) {
           fb.innerHTML += `<div style="display:flex; gap:7px;"><i class="ti ti-edit" aria-hidden="true" style="font-size:13px; margin-top:2px; flex-shrink:0; color:var(--warning-text);"></i><span>${escapeHtml(m.correction)}</span></div>`;
         }
@@ -1303,6 +1410,7 @@ function renderChatLog() {
   if (loading) {
     const loadingEl = document.createElement("div");
     loadingEl.style.cssText = "font-size:13px; color:var(--text-tertiary);";
+    loadingEl.setAttribute("role", "status");
     loadingEl.textContent = "Aan het reageren...";
     chatLog.appendChild(loadingEl);
   }
@@ -1375,8 +1483,9 @@ function updateCharCounter() {
   const counter = document.getElementById("char-counter");
   if (!counter) return;
   const len = chatInput.value.length;
-  counter.textContent = `${len}/280`;
-  counter.style.color = len >= 260 ? "var(--danger-text)" : "var(--text-tertiary)";
+  const max = chatInput.maxLength;
+  counter.textContent = `${len}/${max}`;
+  counter.style.color = len >= max - 20 ? "var(--danger-text)" : "var(--text-tertiary)";
 }
 chatInput.addEventListener("input", () => {
   updateSendButton();
@@ -1384,6 +1493,8 @@ chatInput.addEventListener("input", () => {
   cancelPendingAutoSend();
   updateCharCounter();
 });
+// Clicking into the box means the student wants to edit: stop the pending auto-send.
+chatInput.addEventListener("focus", cancelPendingAutoSend);
 chatInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey) {
     e.preventDefault();
@@ -1392,7 +1503,7 @@ chatInput.addEventListener("keydown", (e) => {
 });
 sendBtn.addEventListener("click", sendMessage);
 
-async function callModel(systemText, userText) {
+async function callModel(systemText, userText, hintsOnly = false) {
   if (providerId === "gemini") {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent`;
     const response = await fetch(url, {
@@ -1406,8 +1517,8 @@ async function callModel(systemText, userText) {
         systemInstruction: { parts: [{ text: systemText }] },
         generationConfig: {
           responseMimeType: "application/json",
-          maxOutputTokens: 500,
-          responseSchema: {
+          maxOutputTokens: 700,
+          responseSchema: hintsOnly ? { type: "object", properties: { questionMeaning: { type: "string" }, answerHint: { type: "string" } }, required: ["questionMeaning", "answerHint"] } : {
             type: "object",
             properties: {
               characterReply: { type: "string" },
@@ -1415,6 +1526,8 @@ async function callModel(systemText, userText) {
               tip: { type: "string" },
               encouragement: { type: "string", nullable: true },
               suggestion: { type: "string" },
+              questionMeaning: { type: "string" },
+              answerHint: { type: "string" },
             },
             required: ["characterReply", "tip", "suggestion"],
           },
@@ -1802,6 +1915,8 @@ function parseModelResponse(rawText) {
     tip: parsed.tip || null,
     encouragement: parsed.encouragement || null,
     suggestion: parsed.suggestion || null,
+    questionMeaning: parsed.questionMeaning || null,
+    answerHint: parsed.answerHint || null,
   };
 }
 
@@ -1810,7 +1925,7 @@ async function runModelTurn() {
     const history = buildHistory(truncateHistory(messages));
 
     const { rawText, usage } = await callModel(
-      systemPrompt(currentScenario, lightMode),
+      systemPrompt(currentScenario, lightMode, hintQ, hintA),
       `Gesprek tot nu toe:\n${history}\n\nGeef je volgende antwoord als JSON volgens het gespecificeerde formaat.`
     );
 
@@ -1835,6 +1950,8 @@ async function runModelTurn() {
   }
 }
 
+// Runs last so every top-level const/let (chatInput, hint state, ...) is initialised first.
+restoreChatIfAny();
 </script>
 </body>
 </html>
