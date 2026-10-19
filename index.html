@@ -2042,6 +2042,20 @@ async function runModelTurn() {
 
 // Runs last so every top-level const/let (chatInput, hint state, ...) is initialised first.
 restoreChatIfAny();
+
+// Cache buster: GitHub Pages lets browsers cache the page for ~10 minutes. On each load, re-fetch
+// the page from the network (which also refreshes the browser cache), and reload once if it
+// changed since last time. The stored hash makes the reload happen only once per release.
+(async () => {
+  try {
+    const text = await (await fetch(location.pathname, { cache: "reload" })).text();
+    let h = 0;
+    for (let i = 0; i < text.length; i++) h = (Math.imul(31, h) + text.charCodeAt(i)) | 0;
+    const prev = localStorage.getItem("dutch_practice_page_hash");
+    localStorage.setItem("dutch_practice_page_hash", String(h));
+    if (prev && prev !== String(h)) location.reload();
+  } catch {} // offline or file:// — keep running the loaded copy
+})();
 </script>
 </body>
 </html>
