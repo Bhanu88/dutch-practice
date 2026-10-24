@@ -31,3 +31,16 @@ The text export already exists. For audio, the two sides are not equally easy:
 Plan: start with the student side only, add the character side later if wanted.
 
 Open question: which provider's key to use for character TTS.
+
+## More natural bot voice
+
+The browser's built-in `speechSynthesis` quality depends on the device. The app picks the best Dutch voice it finds (neural/"Natural", Premium/Enhanced, then Google).
+
+For a clearly human-sounding voice, use a TTS API instead. An optional paid "Natural voice" button was built and then removed; notes for next time:
+
+- **Gemini TTS** (`gemini-3.8-flash-lite-tts`): needs a Gemini key. About $0.0015 per typical 10-second reply today, about $0.003 from 2027 (25 audio tokens per second, $6 per 1M now, $12 from 1 Jan 2027). Request shape follows Google's docs (`/v1beta/interactions`, `speech_metadata` style) and was never tested with a real key.
+- **OpenRouter `openai/gpt-audio-mini`** (tried): a chat model, not a TTS engine, so it can answer instead of reading. Needs streaming with `modalities: ["text","audio"]` and `pcm16` chunks wrapped in a WAV header. Compare the returned transcript with the on-screen text and fall back to the browser voice if it differs. No clear audio price found.
+- **OpenAI TTS (`gpt-4o-mini-tts`)**: a real TTS endpoint with a style instruction; needs an OpenAI key.
+- Design that worked: off by default, cost warning when switched on, key entered only in the key popup, audio cached per reply, fallback to the browser voice on error.
+- Safari/iPad only plays audio that starts after a network wait if the same `<audio>` element was started during a tap, so unlock one shared element on the first gesture.
+- Real TTS audio can also be saved for the voice-download idea above.

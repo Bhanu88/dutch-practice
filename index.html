@@ -178,6 +178,14 @@
     border: 1px solid var(--border-tertiary); border-radius: var(--radius-lg);
   }
   .landing-shots figcaption { font-size: 13px; color: var(--text-secondary); margin-top: 8px; line-height: 1.5; }
+  .checks { list-style: none; padding: 0 !important; gap: 0 !important; }
+  .checks li { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid var(--border-tertiary); }
+  .checks li i { font-size: 18px; margin-top: 2px; flex-shrink: 0; }
+  .checks strong { color: var(--text-primary); font-weight: 500; }
+  .checks .ok i { color: var(--success-text); }
+  .checks .warn i { color: var(--warning-text); }
+  .checks .bad i { color: var(--danger-text); }
+  .keys li i { color: var(--text-secondary); }
   .landing ul { padding-left: 1.1rem; margin: 0; display: flex; flex-direction: column; gap: 6px; }
   .primary-btn {
     background: var(--info-text); color: var(--bg-primary); border: 0;
@@ -238,6 +246,14 @@
       </ol>
     </section>
 
+    <section aria-labelledby="check-title">
+      <h2 id="check-title">System check</h2>
+      <ul id="check-list" class="checks" aria-live="polite"></ul>
+      <button id="test-mic-btn" style="margin-top:14px;">
+        <i class="ti ti-microphone" aria-hidden="true" style="font-size:15px; vertical-align:-2px; margin-right:6px;"></i>Test my microphone
+      </button>
+    </section>
+
     <section>
       <h2>See it in action</h2>
       <div class="landing-shots">
@@ -258,12 +274,24 @@
       </div>
     </section>
 
-    <section>
-      <h2>Help when you need it</h2>
-      <ul>
-        <li>Show the English meaning of what the character said.</li>
-        <li>Get an example answer, including a question to ask back.</li>
-        <li>Keep replies short to spend less.</li>
+    <section aria-labelledby="buttons-title">
+      <h2 id="buttons-title">What each button does</h2>
+      <ul class="checks keys">
+        <li><i class="ti ti-settings" aria-hidden="true"></i><span><strong>Settings (cog).</strong> On the scenario list. Change your provider, model or API key.</span></li>
+        <li><i class="ti ti-microphone" aria-hidden="true"></i><span><strong>Spreek je antwoord in.</strong> Starts recording. It keeps listening through pauses. Click again to stop. Your words appear in the text box.</span></li>
+        <li><i class="ti ti-send" aria-hidden="true"></i><span><strong>Send (paper plane).</strong> Sends your message. Pressing Enter does the same.</span></li>
+        <li><i class="ti ti-clock" aria-hidden="true"></i><span><strong>Annuleren.</strong> Shown for 5 seconds after you speak. Stops the automatic send so you can edit the text first. Clicking in the text box also stops it.</span></li>
+        <li><i class="ti ti-language" aria-hidden="true"></i><span><strong>Question meaning.</strong> Help button. Shows the English meaning of what the character said.</span></li>
+        <li><i class="ti ti-bulb" aria-hidden="true"></i><span><strong>Example answer.</strong> Help button. Shows a Dutch reply you could give, including a question to ask back.</span></li>
+        <li><i class="ti ti-bolt" aria-hidden="true"></i><span><strong>Short.</strong> Help button. Makes replies shorter and cheaper.</span></li>
+        <li><i class="ti ti-volume" aria-hidden="true"></i><span><strong>Speaker (top right).</strong> Turns spoken replies on or off.</span></li>
+        <li><i class="ti ti-list-details" aria-hidden="true"></i><span><strong>List icon.</strong> Shows or hides the summary of your corrections and good phrases. The summary never appears on its own.</span></li>
+        <li><i class="ti ti-download" aria-hidden="true"></i><span><strong>Download icon.</strong> Saves the whole conversation as a text file. The summary panel has its own Download button for a separate summary file.</span></li>
+        <li><i class="ti ti-arrow-left" aria-hidden="true"></i><span><strong>Scenario's.</strong> Goes back to the scenario list. This clears the current chat.</span></li>
+        <li><i class="ti ti-volume" aria-hidden="true"></i><span><strong>Small speaker next to a reply.</strong> Plays that line again.</span></li>
+        <li><i class="ti ti-refresh" aria-hidden="true"></i><span><strong>Opnieuw genereren.</strong> Under the latest reply. Asks for a new reply and puts your message back in the box so you can change it.</span></li>
+        <li><i class="ti ti-reload" aria-hidden="true"></i><span><strong>Opnieuw.</strong> Appears after an error. Tries sending your last message again.</span></li>
+        <li><i class="ti ti-x" aria-hidden="true"></i><span><strong>X.</strong> Closes the summary panel.</span></li>
       </ul>
     </section>
 
@@ -356,6 +384,9 @@
           <button id="toggle-speak-btn" title="Voice replies on" aria-label="Antwoorden voorlezen" aria-pressed="true" style="padding:6px 10px;">
             <i class="ti ti-volume" aria-hidden="true" style="font-size:14px;"></i>
           </button>
+          <button id="toggle-summary-btn" title="Show or hide the summary of this conversation" aria-label="Show or hide the summary" aria-expanded="false" style="padding:6px 10px;">
+            <i class="ti ti-list-details" aria-hidden="true" style="font-size:14px;"></i>
+          </button>
           <button id="export-chat-btn" title="Gesprek exporteren als tekst" aria-label="Gesprek exporteren als tekst" style="padding:6px 10px;">
             <i class="ti ti-download" aria-hidden="true" style="font-size:14px;"></i>
           </button>
@@ -390,14 +421,18 @@
       <div id="feedback-live-region" class="sr-only" aria-live="polite" role="status"></div>
 
       <div id="session-summary" style="display:none; margin-bottom:1rem; padding:14px; background:var(--bg-secondary); border:0.5px solid var(--border-tertiary); border-radius:var(--radius-lg);">
-        <p style="font-size:13px; font-weight:500; margin:0 0 8px; color:var(--text-primary);">
-          Korte samenvatting
-        </p>
-        <div id="session-summary-content" style="font-size:13px; line-height:1.6; margin-bottom:10px;"></div>
-        <button id="continue-after-summary-btn" style="font-size:12.5px; padding:6px 14px;">
-          <i class="ti ti-player-play" aria-hidden="true" style="font-size:13px; vertical-align:-2px; margin-right:4px;"></i>
-          Doorgaan met het gesprek
-        </button>
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px;">
+          <p style="font-size:13px; font-weight:500; margin:0; color:var(--text-primary);">Samenvatting</p>
+          <div style="display:flex; gap:6px;">
+            <button id="download-summary-btn" title="Download the summary as a separate text file" style="font-size:12.5px; padding:4px 10px; min-height:30px; display:flex; align-items:center; gap:4px;">
+              <i class="ti ti-download" aria-hidden="true" style="font-size:13px;"></i>Download
+            </button>
+            <button id="close-summary-btn" title="Hide the summary" aria-label="Hide the summary" style="padding:4px 8px; min-height:30px;">
+              <i class="ti ti-x" aria-hidden="true" style="font-size:13px;"></i>
+            </button>
+          </div>
+        </div>
+        <div id="session-summary-content" style="font-size:13px; line-height:1.6; max-height:40vh; overflow-y:auto;"></div>
       </div>
 
       <div id="chat-error-row" style="display:none; align-items:center; gap:8px; margin-bottom:8px;">
@@ -690,15 +725,20 @@ Je moet ALTIJD voldoen aan het JSON schema hierboven. Antwoord met NIETS anders 
 function getDutchVoice(voices) {
   const dutch = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith("nl"));
   if (dutch.length === 0) return null;
-  const preferredNames = ["google", "microsoft", "standaard", "default"];
   const avoidPattern = /(whisper|bells|organ|cellos|trinoids|bubbles|junior|bad news|boing|jester|wobble|zarvox|albert|fred)/i;
+  // Higher-quality voices sound far less robotic: neural/"Natural" (Edge), Premium/Enhanced (Apple), then Google.
+  const score = (v) => {
+    const n = v.name.toLowerCase();
+    return (/natural|neural|online/.test(n) ? 40 : 0)
+      + (/premium|enhanced/.test(n) ? 30 : 0)
+      + (n.includes("google") ? 20 : 0)
+      + (n.includes("microsoft") ? 10 : 0)
+      + (v.lang.toLowerCase().replace("_", "-") === "nl-nl" ? 5 : 0)
+      + (v.localService ? 0 : 1); // cloud voices usually sound better than the built-in one
+  };
   const ranked = dutch
     .filter(v => !avoidPattern.test(v.name))
-    .sort((a, b) => {
-      const aScore = preferredNames.some(p => a.name.toLowerCase().includes(p)) ? 0 : 1;
-      const bScore = preferredNames.some(p => b.name.toLowerCase().includes(p)) ? 0 : 1;
-      return aScore - bScore;
-    });
+    .sort((a, b) => score(b) - score(a));
   return ranked[0] || dutch[0];
 }
 
@@ -795,8 +835,6 @@ let audioContext = null;
 let analyserNode = null;
 let micStream = null;
 let volumeMeterRAF = null;
-let summaryShownThisSession = false;
-let summaryBaselineTurnCount = 0;
 
 // ---------- Setup screen ----------
 const setupScreen = document.getElementById("setup-screen");
@@ -1144,9 +1182,12 @@ document.getElementById("record-btn").addEventListener("click", () => {
     hideChatError();
     hideTranscriptAlternatives();
     cancelPendingAutoSend();
+    // iPad/iPhone Safari may ask for the microphone again for every new recognizer, so reuse
+    // the last one there. If it produced nothing last time it may be stale: build a fresh one.
+    const reuse = isIOS && recognition && gotResultThisSession;
     gotResultThisSession = false;
     recordingBaseText = document.getElementById("chat-input").value.trim();
-    recognition = createRecognitionInstance();
+    if (!reuse) recognition = createRecognitionInstance();
     try {
       recognition.start();
       setRecognizing(true);
@@ -1316,9 +1357,7 @@ function startScenario(s, restoredMessages = null) {
   chatInput.value = "";
   updateSendButton();
   updateCharCounter();
-  document.getElementById("session-summary").style.display = "none";
-  summaryShownThisSession = false;
-  summaryBaselineTurnCount = 0;
+  setSummaryOpen(false);
   sessionCostUSD = 0;
   const costBadge = document.getElementById("session-cost-badge");
   if (costBadge) costBadge.textContent = "~$0.000";
@@ -1409,12 +1448,11 @@ async function fillMissingHints() {
   }
 }
 
-document.getElementById("continue-after-summary-btn").addEventListener("click", () => {
-  document.getElementById("session-summary").style.display = "none";
-  summaryShownThisSession = false;
-  summaryBaselineTurnCount = messages.filter(m => m.role === "user").length;
-  chatInput.focus();
+document.getElementById("toggle-summary-btn").addEventListener("click", () => {
+  setSummaryOpen(document.getElementById("session-summary").style.display === "none");
 });
+document.getElementById("close-summary-btn").addEventListener("click", () => setSummaryOpen(false));
+document.getElementById("download-summary-btn").addEventListener("click", downloadSummary);
 
 function renderChatLog() {
   chatLog.innerHTML = "";
@@ -1506,6 +1544,7 @@ function renderChatLog() {
   }
 
   chatLog.scrollTop = chatLog.scrollHeight;
+  if (document.getElementById("session-summary").style.display !== "none") renderSummary();
   persistChatState();
 }
 
@@ -1853,62 +1892,44 @@ function renderStreakBadge() {
 }
 
 // ---------- Mini error/improvement summary ----------
-function maybeShowSessionSummary() {
-  const totalUserTurns = messages.filter(m => m.role === "user").length;
-  const turnsSinceBaseline = totalUserTurns - summaryBaselineTurnCount;
-  if (summaryShownThisSession || turnsSinceBaseline < 4) return;
-  // Show once, after the 4th or 5th completed turn since the last summary/continue, then leave it visible.
-  if (turnsSinceBaseline > 5) return;
-  summaryShownThisSession = true;
-
-  // Only summarize messages since the baseline, so continuing past one summary doesn't
-  // keep re-showing corrections from turns already reviewed.
-  const messagesSinceBaseline = messages.slice(summaryBaselineMessageIndex());
-  const corrections = messagesSinceBaseline.filter(m => m.role === "assistant" && m.correction).map(m => m.correction);
-  const goodMoments = messagesSinceBaseline.filter(m => m.role === "assistant" && m.encouragement).map(m => m.encouragement);
-  const tips = messagesSinceBaseline.filter(m => m.role === "assistant" && m.tip).map(m => m.tip);
-
-  const panel = document.getElementById("session-summary");
-  const content = document.getElementById("session-summary-content");
-  if (!panel || !content) return;
-
-  if (corrections.length === 0 && goodMoments.length === 0) {
-    panel.style.display = "none";
-    return;
-  }
-
-  let html = "";
-  if (corrections.length > 0) {
-    html += `<p style="margin:0 0 6px; font-weight:500;">Veelvoorkomende correcties:</p><ul style="margin:0 0 10px; padding-left:18px; color:var(--text-secondary);">`;
-    corrections.slice(0, 3).forEach(c => {
-      html += `<li style="margin-bottom:4px;">${escapeHtml(c)}</li>`;
-    });
-    html += `</ul>`;
-  }
-  if (goodMoments.length > 0 || tips.length > 0) {
-    const highlights = [...goodMoments, ...tips].slice(0, 3);
-    html += `<p style="margin:0 0 6px; font-weight:500;">Goed gebruikte woorden/zinnen:</p><ul style="margin:0; padding-left:18px; color:var(--text-secondary);">`;
-    highlights.forEach(h => {
-      html += `<li style="margin-bottom:4px;">${escapeHtml(h)}</li>`;
-    });
-    html += `</ul>`;
-  }
-
-  content.innerHTML = html;
-  panel.style.display = "block";
+// The summary is built on demand from the whole conversation; it never appears on its own.
+function getSummaryData() {
+  const fromAssistant = (field) => messages.filter(m => m.role === "assistant" && m[field]).map(m => m[field]);
+  return {
+    corrections: fromAssistant("correction"),
+    highlights: [...fromAssistant("encouragement"), ...fromAssistant("tip")],
+  };
 }
 
-function summaryBaselineMessageIndex() {
-  // Find the message index right after the summaryBaselineTurnCount-th user turn,
-  // so summaries only cover turns since the last time one was shown/continued.
-  let seen = 0;
-  for (let i = 0; i < messages.length; i++) {
-    if (messages[i].role === "user") {
-      seen++;
-      if (seen > summaryBaselineTurnCount) return i;
-    }
-  }
-  return 0;
+function renderSummary() {
+  const content = document.getElementById("session-summary-content");
+  const { corrections, highlights } = getSummaryData();
+  const list = (items) => `<ul style="margin:0 0 10px; padding-left:18px; color:var(--text-secondary);">${items.map(i => `<li style="margin-bottom:4px;">${escapeHtml(i)}</li>`).join("")}</ul>`;
+  let html = "";
+  if (corrections.length) html += `<p style="margin:0 0 6px; font-weight:500;">Veelvoorkomende correcties:</p>${list(corrections)}`;
+  if (highlights.length) html += `<p style="margin:0 0 6px; font-weight:500;">Goed gebruikte woorden/zinnen:</p>${list(highlights)}`;
+  content.innerHTML = html || `<p style="margin:0; color:var(--text-secondary);">Nog niets om samen te vatten. Praat nog even door.</p>`;
+  document.getElementById("download-summary-btn").disabled = !html;
+}
+
+function setSummaryOpen(open) {
+  document.getElementById("session-summary").style.display = open ? "block" : "none";
+  document.getElementById("toggle-summary-btn").setAttribute("aria-expanded", String(open));
+  if (open) renderSummary();
+}
+
+function downloadSummary() {
+  const { corrections, highlights } = getSummaryData();
+  const lines = [`Spreekpraktijk — samenvatting: ${currentScenario ? currentScenario.title : "Gesprek"}`, new Date().toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric" }), ""];
+  if (corrections.length) lines.push("Veelvoorkomende correcties:", ...corrections.map(c => `- ${c}`), "");
+  if (highlights.length) lines.push("Goed gebruikte woorden/zinnen:", ...highlights.map(h => `- ${h}`), "");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" }));
+  a.download = `spreekpraktijk-${currentScenario ? currentScenario.id : "gesprek"}-${new Date().toISOString().slice(0, 10)}-samenvatting.txt`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
 }
 
 function updateDepthIndicator() {
@@ -2025,7 +2046,6 @@ async function runModelTurn() {
     if (autoSpeak) speak(parsed.characterReply);
     lastFailedSend = null;
     recordSessionProgress();
-    maybeShowSessionSummary();
     if (usage) recordUsage(usage);
   } catch (e) {
     lastFailedSend = true;
@@ -2042,6 +2062,65 @@ async function runModelTurn() {
 
 // Runs last so every top-level const/let (chatInput, hint state, ...) is initialised first.
 restoreChatIfAny();
+
+// ---------- System check (landing page) ----------
+const checkList = document.getElementById("check-list");
+let micCheck = null; // set by the permission query or by the "Test my microphone" button
+
+function renderChecks() {
+  const hasTTS = "speechSynthesis" in window;
+  const rows = [
+    SR
+      ? ["ok", "Voice input", "Your browser can listen to your Dutch."]
+      : ["warn", "Voice input", "Not supported in this browser. You can still type your answers. Chrome or Edge works best."],
+    !hasTTS
+      ? ["warn", "Spoken replies", "Not supported in this browser. You can still read the replies."]
+      : getDutchVoice(window.speechSynthesis.getVoices())
+        ? ["ok", "Spoken replies", "A Dutch voice is installed."]
+        : ["warn", "Spoken replies", "No Dutch voice found yet. Replies will use your default voice, or install a Dutch voice in your device settings."],
+    navigator.onLine
+      ? ["ok", "Internet", "Connected."]
+      : ["bad", "Internet", "You're offline. You need a connection to talk to the AI."],
+    micCheck || ["warn", "Microphone", "Not checked yet. Use the button below to test it."],
+    window.isSecureContext
+      ? ["ok", "Secure page", "This page is allowed to use the microphone."]
+      : ["bad", "Secure page", "Open this site over https. Browsers block the microphone otherwise."],
+  ];
+  const icon = { ok: "ti-circle-check", warn: "ti-alert-triangle", bad: "ti-circle-x" };
+  checkList.innerHTML = rows.map(([state, name, text]) =>
+    `<li class="${state}"><i class="ti ${icon[state]}" aria-hidden="true"></i><span><strong>${name}.</strong> ${text}</span></li>`
+  ).join("");
+}
+
+// Read the saved microphone permission without prompting. Not every browser supports this.
+if (navigator.permissions && navigator.permissions.query) {
+  navigator.permissions.query({ name: "microphone" }).then((p) => {
+    const apply = () => {
+      micCheck = p.state === "granted" ? ["ok", "Microphone", "Allowed."]
+        : p.state === "denied" ? ["bad", "Microphone", "Blocked. Allow the microphone for this site in your browser settings."]
+        : null;
+      renderChecks();
+    };
+    apply();
+    p.onchange = apply;
+  }).catch(() => {});
+}
+
+document.getElementById("test-mic-btn").addEventListener("click", async () => {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    stream.getTracks().forEach(t => t.stop());
+    micCheck = ["ok", "Microphone", "Works."];
+  } catch {
+    micCheck = ["bad", "Microphone", "Couldn't use it. Allow the microphone for this site, and check that no other app is using it."];
+  }
+  renderChecks();
+});
+
+renderChecks();
+if ("speechSynthesis" in window) window.speechSynthesis.addEventListener("voiceschanged", renderChecks); // voices load late
+window.addEventListener("online", renderChecks);
+window.addEventListener("offline", renderChecks);
 
 // Cache buster: GitHub Pages lets browsers cache the page for ~10 minutes. On each load, re-fetch
 // the page from the network (which also refreshes the browser cache), and reload once if it
